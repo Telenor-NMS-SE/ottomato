@@ -37,7 +37,7 @@ type Worker struct {
 
 type (
 	Workload interface {
-		Init(context.Context) error
+		Init(context.Context)
 		Name() string
 		Stop() error
 		Ping(context.Context) error

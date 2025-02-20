@@ -22,9 +22,7 @@ type MockManagedObject struct {
 	name string
 }
 
-func (mo *MockManagedObject) Init(context.Context) error {
-	return nil
-}
+func (mo *MockManagedObject) Init(context.Context) {}
 
 func (mo *MockManagedObject) Name() string {
 	return mo.name

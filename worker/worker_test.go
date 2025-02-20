@@ -6,46 +6,46 @@ import (
 	"time"
 )
 
-type MockKvStore struct {
+type MockState struct {
 	kv map[string]any
 }
 
-func (k *MockKvStore) RegisterWorker(id string) {}
+func (k *MockState) RegisterWorker(id string) {}
 
-func (k *MockKvStore) RegisterWorkload(name string, id string) {}
+func (k *MockState) RegisterWorkload(name string, id string) {}
 
-func (k *MockKvStore) DeleteWorkload(name string, id string) {}
+func (k *MockState) DeleteWorkload(name string, id string) {}
 
-func (k *MockKvStore) UpdateWorkload(name string, id string) {}
+func (k *MockState) UpdateWorkload(name string, id string) {}
 
-type MockManagedObject struct {
+type MockWorkload struct {
 	name string
 }
 
-func (mo *MockManagedObject) Init(context.Context) {}
+func (mo *MockWorkload) Init(context.Context) {}
 
-func (mo *MockManagedObject) Name() string {
+func (mo *MockWorkload) Name() string {
 	return mo.name
 }
 
-func (mo *MockManagedObject) Stop() error {
+func (mo *MockWorkload) Stop() error {
 	return nil
 }
 
-func (mo *MockManagedObject) Ping(ctx context.Context) error {
+func (mo *MockWorkload) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (mo *MockManagedObject) Info() map[string]any {
+func (mo *MockWorkload) Info() map[string]any {
 	return map[string]any{}
 }
 
-func (mo *MockManagedObject) RunTask(ctx context.Context, target string, task *Task) (Result, error) {
+func (mo *MockWorkload) RunTask(ctx context.Context, target string, task *Task) (Result, error) {
 	return Result{JobID: "test", Return: "test"}, nil
 }
 
 func TestNewWorker(t *testing.T) {
-	kv := &MockKvStore{}
+	kv := &MockState{}
 
 	mgr, err := New(context.Background(), kv)
 	if err != nil {
@@ -58,14 +58,14 @@ func TestNewWorker(t *testing.T) {
 }
 
 func TestAddWorkload(t *testing.T) {
-	kv := &MockKvStore{}
+	kv := &MockState{}
 
 	mgr, err := New(context.Background(), kv)
 	if err != nil {
 		t.Fatalf("coult not create new manager: %s", err.Error())
 	}
 
-	obj := MockManagedObject{name: "test"}
+	obj := MockWorkload{name: "test"}
 
 	if err := mgr.AddWorkload(context.Background(), &obj); err != nil {
 		t.Fatalf("failed to add workload: %v", err)
@@ -77,14 +77,14 @@ func TestAddWorkload(t *testing.T) {
 }
 
 func TestRemoveManagedObject(t *testing.T) {
-	kv := &MockKvStore{}
+	kv := &MockState{}
 
 	mgr, err := New(context.Background(), kv)
 	if err != nil {
 		t.Fatalf("coult not create new manager: %s", err.Error())
 	}
 
-	obj := MockManagedObject{name: "test"}
+	obj := MockWorkload{name: "test"}
 
 	if err := mgr.AddWorkload(context.Background(), &obj); err != nil {
 		t.Fatalf("failed to add workload: %v", err)
@@ -100,14 +100,14 @@ func TestRemoveManagedObject(t *testing.T) {
 }
 
 func TestRunTask(t *testing.T) {
-	kv := &MockKvStore{}
+	kv := &MockState{}
 
 	mgr, err := New(context.Background(), kv)
 	if err != nil {
 		t.Fatalf("coult not create new manager: %s", err.Error())
 	}
 
-	obj := MockManagedObject{name: "test"}
+	obj := MockWorkload{name: "test"}
 
 	if err := mgr.AddWorkload(context.Background(), &obj); err != nil {
 		t.Fatalf("failed to add workload: %v", err)
@@ -124,7 +124,7 @@ func TestRunTask(t *testing.T) {
 }
 
 func TestEventCallback(t *testing.T) {
-	kv := &MockKvStore{}
+	kv := &MockState{}
 
 	var hit bool
 	opts := []Option{
@@ -138,7 +138,7 @@ func TestEventCallback(t *testing.T) {
 		t.Fatalf("coult not create new manager: %s", err.Error())
 	}
 
-	obj := MockManagedObject{name: "test"}
+	obj := MockWorkload{name: "test"}
 	mgr.AddWorkload(context.Background(), &obj)
 
 	// wait, because events are async

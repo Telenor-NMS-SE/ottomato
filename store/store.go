@@ -38,10 +38,8 @@ func (s *Store) DeleteWorkload(workloadName string, workerId string) {
 	defer s.mu.Unlock()
 
 	key := fmt.Sprintf("%s.%s", workerId, workloadName)
+	delete(s.kv, key)
 
-	if _, exists := s.kv[key]; exists {
-		delete(s.kv, key)
-	}
 }
 
 func (s *Store) UpdateWorkload(workloadName string, workerId string) {}

@@ -7,7 +7,7 @@ import (
 )
 
 type MockState struct {
-	kv map[string]any
+	kv map[string]any //nolint:all
 }
 
 func (k *MockState) RegisterWorker(id string) {}
@@ -139,7 +139,9 @@ func TestEventCallback(t *testing.T) {
 	}
 
 	obj := MockWorkload{name: "test"}
-	mgr.AddWorkload(context.Background(), &obj)
+	if err := mgr.AddWorkload(context.Background(), &obj); err != nil {
+		t.Fatalf("Could not add new workload; %s", err.Error())
+	}
 
 	// wait, because events are async
 	time.Sleep(10 * time.Millisecond)

@@ -168,7 +168,7 @@ func (w *Worker) RunTask(ctx context.Context, target string, task *Task) (Result
 
 	// add a bit of metadata
 	job.Timestamp = start
-	job.ExecutionTime = time.Now().Sub(start).Milliseconds()
+	job.ExecutionTime = time.Since(start).Milliseconds()
 	job.WorkerID = w.config.id
 
 	return job, err
@@ -222,7 +222,7 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 
 	// clean up schedule, but do not return on error
 	if err := w.sc.RemoveJob(mo.jid); err != nil {
-		err = fmt.Errorf("%w: %v", ErrScheduleCleanup, err)
+		err = fmt.Errorf("%w: %v", ErrScheduleCleanup, err) //nolint:all
 	}
 
 	delete(w.workloads, name)
@@ -289,10 +289,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 			w.failCounter[host] += 1
 		} else {
 			w.EventCh <- *NewWorkloadReachableEvent(w.config.id, host)
-
-			if _, exists := w.failCounter[host]; exists {
-				delete(w.failCounter, host)
-			}
+			delete(w.failCounter, host)
 		}
 	}
 }

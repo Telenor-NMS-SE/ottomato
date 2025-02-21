@@ -21,32 +21,32 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-
+	
 	"github.com/Telenor-NMS-SE/ottomato/store"
 	"github.com/Telenor-NMS-SE/ottomato/worker"
 )
 
 type ExampleDevice struct {
-    Hostname string
+	Hostname string
 }
 
 func (d *ExampleDevice) Init(ctx context.Context) error {
-    slog.Info("i have been initated", "device", d.Hostname)
+	slog.Info("i have been initated", "device", d.Hostname)
 	return nil
 }
 
 func (d *ExampleDevice) Ping(ctx context.Context) error {
-    slog.Info("i have been pinged", "device", d.Hostname)
+	slog.Info("i have been pinged", "device", d.Hostname)
 	return nil
 }
 
 func (d *ExampleDevice) RunTask(ctx context.Context, target string, task *worker.Task) (worker.Result, error) {
-    slog.Info("i have received a task", "device", d.Hostname)
+	slog.Info("i have received a task", "device", d.Hostname)
 	return worker.Result{}, nil
 }
 
 func (d *ExampleDevice) Stop() error {
-    slog.Info("i have been told to stop", "device", d.Hostname)
+	slog.Info("i have been told to stop", "device", d.Hostname)
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (d *ExampleDevice) Info() map[string]any {
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
- 
+	
 	w, err := worker.New(ctx, store.New(ctx))
 	if err != nil {
 		slog.Error("failed to create new worker", "error", err)
@@ -71,29 +71,29 @@ func main() {
 			slog.Error("failed to stop worker", "error", err)
 		}
 	}()
-
+	
 	for i := range 10 {
-        name := fmt.Sprintf("device-%d", i)
-
-        slog.Info("adding workload", "name", name)
-
+		name := fmt.Sprintf("device-%d", i)
+		
+		slog.Info("adding workload", "name", name)
+		
 		if err := w.AddWorkload(ctx, &ExampleDevice{Hostname: name}); err != nil {
 			slog.Error("failed to add workload", "error", err)
 		}
 	}
-
-    for _, wl := range w.Workloads() {
-        res, err := w.RunTask(ctx, wl, &worker.Task{Command: "hello"})
-        if err != nil {
-            slog.Error("failed to run task", "workload", wl, "error", err)
-        }
+	
+	for _, wl := range w.Workloads() {
+		res, err := w.RunTask(ctx, wl, &worker.Task{Command: "hello"})
+		if err != nil {
+			slog.Error("failed to run task", "workload", wl, "error", err)
+		}
 		slog.Info("got response", "workload", wl, "response", res)
-        
-        if err := w.DeleteWorkload(wl); err != nil {
-            slog.Error("failed to delete workload", "workload", wl, "error", err)
-        }
-    }
-
+	    
+		if err := w.DeleteWorkload(wl); err != nil {
+			slog.Error("failed to delete workload", "workload", wl, "error", err)
+		}
+	}
+	
 	<-ctx.Done()
 }
 ```

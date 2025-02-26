@@ -7,8 +7,8 @@ import (
 
 type Option func(*Worker)
 
-// Set an explicit manager ID, default: UUID
-func WithManagerID(id string) Option {
+// Set an explicit Worker ID, default: UUID
+func WithWorkerID(id string) Option {
 	return func(w *Worker) {
 		w.config.id = id
 	}

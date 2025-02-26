@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func TestWithManagerID(t *testing.T) {
+func TestWithWorkerID(t *testing.T) {
 	w := Worker{}
 
-	opt := WithManagerID("test")
+	opt := WithWorkerID("test")
 	opt(&w)
 
 	if exp, recv := "test", w.config.id; exp != recv {

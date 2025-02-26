@@ -16,6 +16,14 @@ type Worker struct {
 	sc  gocron.Scheduler
 	sr  StateRepository
 
+	EventCh chan Event
+
+	workloadsMu sync.RWMutex
+	workloads   map[string]workload
+
+	failMu      sync.Mutex
+	failCounter map[string]int
+
 	config struct {
 		id          string
 		splayHi     time.Duration
@@ -25,14 +33,6 @@ type Worker struct {
 		eventCbs    []func(context.Context, Event)
 		errCb       func(error)
 	}
-
-	workloadsMu sync.RWMutex
-	workloads   map[string]workload
-
-	failMu      sync.Mutex
-	failCounter map[string]int
-
-	EventCh chan Event
 }
 
 type (
@@ -269,7 +269,7 @@ func (w *Worker) Tasks() []map[string]string {
 }
 
 // Returns the WorkerID
-func (w *Worker) GetManagerID() string {
+func (w *Worker) GetWorkerID() string {
 	return w.config.id
 }
 

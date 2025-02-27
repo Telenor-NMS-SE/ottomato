@@ -37,16 +37,18 @@ type Worker struct {
 
 type (
 	Workload interface {
-		Init(context.Context)
-		Name() string
-		Stop() error
+		Init(context.Context) error
 		Ping(context.Context) error
-		Info() map[string]any
 		RunTask(context.Context, *Task) (Result, error)
+		Stop() error
+		Info() map[string]any
+		Name() string
 	}
 	workload struct {
-		Object Workload
-		jid    uuid.UUID
+		object    Workload
+		jid       uuid.UUID
+		createdAt time.Time
+		updatedAt time.Time
 	}
 )
 
@@ -152,6 +154,15 @@ func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, erro
 
 // Stop the worker
 func (w *Worker) Stop() error {
+	w.workloadsMu.Lock()
+	defer w.workloadsMu.Unlock()
+
+	for k, wl := range w.workloads {
+		if err := wl.object.Stop(); err != nil {
+			return fmt.Errorf("failed to stop workload '%s': %w", k, err)
+		}
+	}
+
 	return w.sc.Shutdown()
 }
 
@@ -164,7 +175,7 @@ func (w *Worker) RunTask(ctx context.Context, target string, task *Task) (Result
 		return Result{}, ErrWorkloadNotFound
 	}
 
-	job, err := wl.Object.RunTask(ctx, target, task)
+	job, err := wl.object.RunTask(ctx, task)
 
 	// add a bit of metadata
 	job.Timestamp = start
@@ -175,15 +186,23 @@ func (w *Worker) RunTask(ctx context.Context, target string, task *Task) (Result
 }
 
 // Adds a new workload to the worker
-func (w *Worker) AddWorkload(ctx context.Context, wl Workload) error {
+func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, error) {
 	w.workloadsMu.Lock()
+	defer w.workloadsMu.Unlock()
 
-	if _, exists := w.workloads[wl.Name()]; exists {
-		return ErrWorkloadExists
+	now := time.Now()
+	meta := map[string]any{
+		"name":      wl.Name(),
+		"createdAt": now.UTC().String(),
+		"updatedAt": now.UTC().String(),
 	}
 
-	mo := workload{
-		Object: wl,
+	if _, exists := w.workloads[wl.Name()]; exists {
+		return meta, ErrWorkloadExists
+	}
+
+	if err := wl.Init(ctx); err != nil {
+		return meta, err
 	}
 
 	job, err := w.sc.NewJob(
@@ -192,18 +211,20 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) error {
 		gocron.WithContext(ctx),
 	)
 	if err != nil {
-		return err
+		return meta, err
 	}
 
-	mo.jid = job.ID()
-	w.workloads[wl.Name()] = mo
-
-	go wl.Init(ctx)
-	w.workloadsMu.Unlock()
+	w.workloads[wl.Name()] = workload{
+		object:    wl,
+		jid:       job.ID(),
+		createdAt: now,
+		updatedAt: now,
+	}
+	meta["id"] = job.ID().String()
 
 	w.EventCh <- *NewWorkloadInitiatedEvent(w.config.id, wl.Name())
 
-	return nil
+	return meta, nil
 }
 
 // Stops and deletes a workload from the worker
@@ -216,7 +237,7 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 		return ErrWorkloadNotFound
 	}
 
-	if err := mo.Object.Stop(); err != nil {
+	if err := mo.object.Stop(); err != nil {
 		return err
 	}
 
@@ -232,11 +253,16 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 }
 
 // This should return []map[string]string with a bunch of metadata
-func (w *Worker) Workloads() []string {
-	keys := make([]string, 0, len(w.workloads))
+func (w *Worker) Workloads() []map[string]any {
+	keys := make([]map[string]any, 0, len(w.workloads))
 
-	for k := range w.workloads {
-		keys = append(keys, k)
+	for k, v := range w.workloads {
+		keys = append(keys, map[string]any{
+			"name":      k,
+			"id":        v.jid,
+			"createdAt": v.createdAt,
+			"updatedAt": v.updatedAt,
+		})
 	}
 
 	return keys
@@ -284,7 +310,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		w.failMu.Lock()
 		defer w.failMu.Unlock()
 
-		if err := mo.Object.Ping(ctx); err != nil {
+		if err := mo.object.Ping(ctx); err != nil {
 			w.EventCh <- *NewWorkloadUnreachableEvent(w.config.id, host)
 			w.failCounter[host] += 1
 		} else {

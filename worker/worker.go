@@ -42,7 +42,7 @@ type (
 		Stop() error
 		Ping(context.Context) error
 		Info() map[string]any
-		RunTask(context.Context, string, *Task) (Result, error)
+		RunTask(context.Context, *Task) (Result, error)
 	}
 	workload struct {
 		Object Workload

@@ -1,10 +1,10 @@
 package worker
 
 type Event struct {
-	Msg          string    `json:"msg"`
-	Manager      string    `json:"manager"`
-	WorkloadName string    `json:"managed_object"`
 	EventType    EventType `json:"event_type"`
+	Worker       string    `json:"manager"`
+	WorkloadName string    `json:"managed_object"`
+	Message      string    `json:"msg"`
 }
 
 type EventType int
@@ -32,43 +32,43 @@ func (e EventType) ToString() string {
 }
 
 const (
-	WorkloadInitiatedMsg   = "workload initiated"
-	WorkloadReachableMsg   = "workload reachable"
-	WorkloadUnreachableMsg = "workload unreachable"
-	WorkloadDeadMsg        = "workload unresponsive"
+	MsgWorkloadInitiated   = "workload initiated"
+	MsgWorkloadReachable   = "workload reachable"
+	MsgWorkloadUnreachable = "workload unreachable"
+	MsgWorkloadDead        = "workload unresponsive"
 )
 
-func NewWorkloadInitiatedEvent(mgrId string, moName string) *Event {
+func NewWorkloadInitiatedEvent(workerId string, workloadName string) *Event {
 	return &Event{
-		Manager:      mgrId,
-		Msg:          WorkloadInitiatedMsg,
-		WorkloadName: moName,
 		EventType:    EventInitialized,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+		Message:      MsgWorkloadInitiated,
 	}
 }
 
-func NewWorkloadReachableEvent(mgrId string, moName string) *Event {
+func NewWorkloadReachableEvent(workerId string, workloadName string) *Event {
 	return &Event{
-		Manager:      mgrId,
-		Msg:          WorkloadReachableMsg,
-		WorkloadName: moName,
 		EventType:    EventReachable,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+		Message:      MsgWorkloadReachable,
 	}
 }
 
-func NewWorkloadUnreachableEvent(mgrId string, moName string) *Event {
+func NewWorkloadUnreachableEvent(workerId string, workloadName string) *Event {
 	return &Event{
-		Manager:      mgrId,
-		Msg:          WorkloadUnreachableMsg,
-		WorkloadName: moName,
 		EventType:    EventUnreachable,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+		Message:      MsgWorkloadUnreachable,
 	}
 }
-func NewWorkloadDeadEvent(mgrId string, moName string) *Event {
+func NewWorkloadDeadEvent(workerId string, workloadName string) *Event {
 	return &Event{
-		Manager:      mgrId,
-		Msg:          WorkloadDeadMsg,
-		WorkloadName: moName,
 		EventType:    EventDead,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+		Message:      MsgWorkloadDead,
 	}
 }

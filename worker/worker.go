@@ -114,6 +114,7 @@ func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, erro
 			splayLo:     DEFAULT_SPLAY_LO,
 			pingTimeout: DEFAULT_PING_TIMEOUT,
 			maxPingDown: DEFAULT_MAX_PINGDOWN,
+			eventCbs:    make([]func(context.Context, Event), 0),
 		},
 	}
 

@@ -57,7 +57,7 @@ type (
 type (
 	Task struct {
 		Command string         `json:"command"`
-		Args    []any          `json:"arguments"`
+		Args    []string       `json:"args"`
 		Kwargs  map[string]any `json:"kwargs"`
 	}
 	Result struct {
@@ -66,7 +66,7 @@ type (
 		Tags          []string       `json:"tags"`
 		Hostname      string         `json:"hostname"`
 		Command       string         `json:"command"`
-		Args          []any          `json:"arguments"`
+		Args          []string       `json:"args"`
 		Kwargs        map[string]any `json:"kwargs"`
 		Success       bool           `json:"success"`
 		Return        any            `json:"return"`

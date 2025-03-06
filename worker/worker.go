@@ -64,7 +64,7 @@ type (
 		Tags          []string       `json:"tags"`
 		Hostname      string         `json:"hostname"`
 		Command       string         `json:"command"`
-		Args          []string       `json:"arguments"`
+		Args          []string       `json:"args"`
 		Kwargs        map[string]any `json:"kwargs"`
 		Success       bool           `json:"success"`
 		Return        any            `json:"return"`

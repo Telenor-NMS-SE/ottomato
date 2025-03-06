@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+
+	"github.com/Telenor-NMS-SE/ottomato/store"
 )
 
 type Worker struct {
@@ -96,12 +98,11 @@ var (
 )
 
 // Create a new worker instance with default options, override with []Option
-func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, error) {
+func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	var err error
 
 	worker := &Worker{
 		ctx:         ctx,
-		sr:          sr,
 		workloads:   make(map[string]workload),
 		EventCh:     make(chan Event),
 		failCounter: map[string]int{},
@@ -132,6 +133,10 @@ func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, erro
 
 	if worker.config.maxPingDown == 0 {
 		worker.config.maxPingDown = DEFAULT_MAX_PINGDOWN
+	}
+
+	if worker.sr == nil {
+		worker.sr = store.New()
 	}
 
 	if worker.sc, err = gocron.NewScheduler(); err != nil {

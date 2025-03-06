@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	
-	"github.com/Telenor-NMS-SE/ottomato/store"
 	"github.com/Telenor-NMS-SE/ottomato/worker"
 )
 
@@ -41,7 +40,7 @@ func (d *ExampleDevice) Ping(ctx context.Context) error {
 }
 
 func (d *ExampleDevice) RunTask(ctx context.Context, target string, task *worker.Task) (worker.Result, error) {
-	slog.Info("i have received a task", "device", d.Hostname)
+	slog.Info("i have received a task", "device", d.Hostname, "command", task.Command)
 	return worker.Result{}, nil
 }
 
@@ -62,7 +61,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	
-	w, err := worker.New(ctx, store.New(ctx))
+	w, err := worker.New(ctx)
 	if err != nil {
 		slog.Error("failed to create new worker", "error", err)
 	}

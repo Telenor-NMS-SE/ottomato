@@ -49,3 +49,9 @@ func WithEventCallback(fn func(context.Context, Event)) Option {
 		w.config.eventCbs = append(w.config.eventCbs, fn)
 	}
 }
+
+func WithExternalState(sr StateRepository) Option {
+	return func(w *Worker) {
+		w.sr = sr
+	}
+}

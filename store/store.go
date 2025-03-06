@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -12,7 +11,7 @@ type Store struct {
 	kv map[string]struct{}
 }
 
-func New(ctx context.Context) *Store {
+func New() *Store {
 	return &Store{
 		kv: map[string]struct{}{},
 	}

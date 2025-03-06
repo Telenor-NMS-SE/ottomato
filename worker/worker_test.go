@@ -2,19 +2,31 @@ package worker
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 )
 
 type MockState struct {
-	kv map[string]any //nolint:all
+	mu sync.Mutex
+	kv map[string]string //nolint:all
 }
 
 func (k *MockState) RegisterWorker(id string) {}
 
-func (k *MockState) RegisterWorkload(name string, id string) {}
+func (k *MockState) RegisterWorkload(name string, id string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
 
-func (k *MockState) DeleteWorkload(name string, id string) {}
+	k.kv[name] = id
+}
+
+func (k *MockState) DeleteWorkload(name string, id string) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	delete(k.kv, name)
+}
 
 func (k *MockState) UpdateWorkload(name string, id string) {}
 
@@ -47,11 +59,9 @@ func (mo *MockWorkload) RunTask(ctx context.Context, task *Task) (Result, error)
 }
 
 func TestNewWorker(t *testing.T) {
-	kv := &MockState{}
-
-	mgr, err := New(context.Background(), kv)
+	mgr, err := New(context.Background())
 	if err != nil {
-		t.Fatalf("coult not create new manager: %s", err.Error())
+		t.Fatalf("could not create new worker: %s", err.Error())
 	}
 
 	if exp, recv := 0, len(mgr.Workloads()); exp != recv {
@@ -60,26 +70,23 @@ func TestNewWorker(t *testing.T) {
 }
 
 func TestAddWorkload(t *testing.T) {
-	kv := &MockState{}
-
-	w, err := New(context.Background(), kv)
+	w, err := New(context.Background())
 	if err != nil {
-		t.Fatalf("coult not create new manager: %s", err.Error())
+		t.Fatalf("could not create new worker: %s", err.Error())
 	}
 
-	obj := MockWorkload{name: "test"}
-
-	wl, err := w.AddWorkload(context.Background(), &obj)
+	wl := MockWorkload{name: "test"}
+	res, err := w.AddWorkload(context.Background(), &wl)
 	if err != nil {
 		t.Fatalf("failed to add workload: %v", err)
 	}
 
-	name, ok := wl["name"]
+	name, ok := res["name"]
 	if !ok {
 		t.Errorf("expected to find a workload name in the returned metadata, but found none")
 	}
 
-	if exp, recv := obj.name, name; exp != recv {
+	if exp, recv := wl.name, name; exp != recv {
 		t.Errorf("expected workload name to be '%s', but got: %s", exp, recv)
 	}
 
@@ -89,11 +96,9 @@ func TestAddWorkload(t *testing.T) {
 }
 
 func TestRemoveManagedObject(t *testing.T) {
-	kv := &MockState{}
-
-	w, err := New(context.Background(), kv)
+	w, err := New(context.Background())
 	if err != nil {
-		t.Fatalf("coult not create new manager: %s", err.Error())
+		t.Fatalf("could not create new worker: %s", err.Error())
 	}
 
 	obj := MockWorkload{name: "test"}
@@ -112,22 +117,20 @@ func TestRemoveManagedObject(t *testing.T) {
 }
 
 func TestRunTask(t *testing.T) {
-	kv := &MockState{}
-
-	w, err := New(context.Background(), kv)
+	w, err := New(context.Background())
 	if err != nil {
-		t.Fatalf("coult not create new manager: %s", err.Error())
+		t.Fatalf("could not create new worker: %s", err.Error())
 	}
 
-	obj := MockWorkload{name: "test"}
+	wl := MockWorkload{name: "test"}
 
-	if _, err := w.AddWorkload(context.Background(), &obj); err != nil {
+	if _, err := w.AddWorkload(context.Background(), &wl); err != nil {
 		t.Fatalf("failed to add workload: %v", err)
 	}
 
 	job, err := w.RunTask(context.Background(), "test", &Task{Command: "test"})
 	if err != nil {
-		t.Fatalf("coult not run task: %s", err.Error())
+		t.Fatalf("could not run task: %s", err.Error())
 	}
 
 	if exp, recv := "test", job.JobID; exp != recv {
@@ -136,8 +139,6 @@ func TestRunTask(t *testing.T) {
 }
 
 func TestEventCallback(t *testing.T) {
-	kv := &MockState{}
-
 	var hit bool
 	opts := []Option{
 		WithEventCallback(func(ctx context.Context, e Event) {
@@ -145,14 +146,14 @@ func TestEventCallback(t *testing.T) {
 		}),
 	}
 
-	w, err := New(context.Background(), kv, opts...)
+	w, err := New(context.Background(), opts...)
 	if err != nil {
-		t.Fatalf("coult not create new manager: %s", err.Error())
+		t.Fatalf("could not create new manager: %s", err.Error())
 	}
 
-	obj := MockWorkload{name: "test"}
-	if _, err := w.AddWorkload(context.Background(), &obj); err != nil {
-		t.Fatalf("Could not add new workload; %s", err.Error())
+	wl := MockWorkload{name: "test"}
+	if _, err := w.AddWorkload(context.Background(), &wl); err != nil {
+		t.Fatalf("failed to add new workload; %s", err.Error())
 	}
 
 	// wait, because events are async
@@ -160,5 +161,43 @@ func TestEventCallback(t *testing.T) {
 
 	if exp, recv := true, hit; exp != recv {
 		t.Errorf("expected callback to be executed, but it wasn't")
+	}
+}
+
+func TestWithExternalState(t *testing.T) {
+	kv := &MockState{
+		kv: map[string]string{},
+	}
+
+	opts := []Option{
+		WithExternalState(kv),
+	}
+
+	w, err := New(context.Background(), opts...)
+	if err != nil {
+		t.Fatalf("could not create a new worker: %v", err)
+	}
+
+	wl := MockWorkload{name: "test"}
+	if _, err := w.AddWorkload(context.Background(), &wl); err != nil {
+		t.Fatalf("could not add workload: %v", err)
+	}
+
+	// give time to catch up, as state updates are fired via events
+	time.Sleep(5 * time.Millisecond)
+
+	if exp, recv := 1, len(kv.kv); exp != recv {
+		t.Errorf("expected external state to have a length of %d, but got: %d", exp, recv)
+	}
+
+	if err := w.DeleteWorkload("test"); err != nil {
+		t.Fatalf("failed to delete workload: %v", err)
+	}
+
+	// give time to catch up, as state updates are fired via events
+	time.Sleep(5 * time.Millisecond)
+
+	if exp, recv := 0, len(kv.kv); exp != recv {
+		t.Errorf("expected external state to have a length of %d, but got: %d", exp, recv)
 	}
 }

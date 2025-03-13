@@ -50,6 +50,7 @@ func WithEventCallback(fn func(context.Context, Event)) Option {
 	}
 }
 
+// Provide your own state storage implementation
 func WithExternalState(sr StateRepository) Option {
 	return func(w *Worker) {
 		w.sr = sr

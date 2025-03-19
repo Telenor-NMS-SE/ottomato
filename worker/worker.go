@@ -9,21 +9,26 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+
+	"github.com/Telenor-NMS-SE/ottomato/store"
 )
 
-type Worker struct {
-	ctx context.Context
-	sc  gocron.Scheduler
-	sr  StateRepository
+type (
+	Worker struct {
+		ctx         context.Context
+		sc          gocron.Scheduler
+		sr          StateRepository
 
-	EventCh chan Event
+		EventCh     chan Event
 
-	workloadsMu sync.RWMutex
-	workloads   map[string]workload
+		workloadsMu sync.RWMutex
+		workloads   map[string]workload
 
-	failMu      sync.Mutex
-	failCounter map[string]int
+		failMu      sync.Mutex
+		failCounter map[string]int
 
+		config      config
+	}
 	config struct {
 		id          string
 		splayHi     time.Duration
@@ -33,7 +38,7 @@ type Worker struct {
 		eventCbs    []func(context.Context, Event)
 		errCb       func(error)
 	}
-}
+)
 
 type (
 	Workload interface {
@@ -52,26 +57,11 @@ type (
 	}
 )
 
-type (
-	Task struct {
-		Command string         `json:"command"`
-		Args    []any          `json:"arguments"`
-		Kwargs  map[string]any `json:"kwargs"`
-	}
-	Result struct {
-		JobID         string         `json:"jobId"`
-		WorkerID      string         `json:"workerId"`
-		Tags          []string       `json:"tags"`
-		Hostname      string         `json:"hostname"`
-		Command       string         `json:"command"`
-		Args          []any          `json:"arguments"`
-		Kwargs        map[string]any `json:"kwargs"`
-		Success       bool           `json:"success"`
-		Return        any            `json:"return"`
-		Timestamp     time.Time      `json:"timestamp"`
-		ExecutionTime int64          `json:"executionTime"`
-	}
-)
+type Task struct {
+	Command string         `json:"command"`
+	Args    []string       `json:"args"`
+	Kwargs  map[string]any `json:"kwargs"`
+}
 
 type (
 	StateRepository interface {
@@ -96,15 +86,22 @@ var (
 )
 
 // Create a new worker instance with default options, override with []Option
-func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, error) {
+func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	var err error
 
 	worker := &Worker{
 		ctx:         ctx,
-		sr:          sr,
 		workloads:   make(map[string]workload),
 		EventCh:     make(chan Event),
 		failCounter: map[string]int{},
+		config:      config{
+			id:          uuid.NewString(),
+			splayHi:     DEFAULT_SPLAY_HI,
+			splayLo:     DEFAULT_SPLAY_LO,
+			pingTimeout: DEFAULT_PING_TIMEOUT,
+			maxPingDown: DEFAULT_MAX_PINGDOWN,
+			eventCbs:    make([]func(context.Context, Event), 0),
+		},
 	}
 
 	worker.config.eventCbs = append(worker.config.eventCbs, worker.stateUpdateCb)
@@ -112,26 +109,9 @@ func New(ctx context.Context, sr StateRepository, opts ...Option) (*Worker, erro
 	for _, opt := range opts {
 		opt(worker)
 	}
-
-	// set sane defaults if no options has been provided
-	if worker.config.id == "" {
-		worker.config.id = uuid.NewString()
-	}
-
-	if worker.config.splayHi == 0 {
-		worker.config.splayHi = DEFAULT_SPLAY_HI
-	}
-
-	if worker.config.splayLo == 0 {
-		worker.config.splayLo = DEFAULT_SPLAY_LO
-	}
-
-	if worker.config.pingTimeout == 0 {
-		worker.config.pingTimeout = DEFAULT_PING_TIMEOUT
-	}
-
-	if worker.config.maxPingDown == 0 {
-		worker.config.maxPingDown = DEFAULT_MAX_PINGDOWN
+  
+	if worker.sr == nil {
+		worker.sr = store.New()
 	}
 
 	if worker.sc, err = gocron.NewScheduler(); err != nil {

@@ -10,7 +10,7 @@ Ottomoato is a framework to help you abstract task scheduling and automations ac
 Throughout the years we've used a few other frameworks and tools that let's you orchestrate a swarm of OT devices, but as we've been scaling up the project, we've encoutered some issues with availability zone, resource and orchestration management when dealing with 10-100k+ devices.
 
 ## Quick start
-`go get github.com/telenor-nms-se/ottomato@0.0.1`
+`go get github.com/telenor-nms-se/ottomato@0.0.3`
 
 ```go
 package main

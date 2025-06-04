@@ -121,6 +121,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	if _, err = worker.sc.NewJob(
 		gocron.DurationJob(10*time.Second),
 		gocron.NewTask(worker.garbageCollector),
+		gocron.WithName("garbage collector"),
 		gocron.WithContext(ctx),
 	); err != nil {
 		return worker, err
@@ -188,6 +189,7 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 	job, err := w.sc.NewJob(
 		gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
 		gocron.NewTask(w.stateCheck(wl.Name())),
+		gocron.WithName(fmt.Sprintf("worker state check: %s", wl.Name())),
 		gocron.WithContext(ctx),
 	)
 	if err != nil {

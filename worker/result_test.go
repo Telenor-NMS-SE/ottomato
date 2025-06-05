@@ -8,7 +8,7 @@ import (
 )
 
 func TestResultMarshalJSON(t *testing.T) {
-	cases := []struct{
+	cases := []struct {
 		Recv Result
 		Exp  string
 	}{
@@ -31,7 +31,7 @@ func TestResultMarshalJSON(t *testing.T) {
 func TestResultUnmarshalJSON(t *testing.T) {
 	errStr := "test"
 
-	cases := []struct{
+	cases := []struct {
 		Recv []byte
 		Exp  *string
 	}{

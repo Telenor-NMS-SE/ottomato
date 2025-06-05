@@ -15,11 +15,11 @@ import (
 
 type (
 	Worker struct {
-		ctx         context.Context
-		sc          gocron.Scheduler
-		sr          StateRepository
+		ctx context.Context
+		sc  gocron.Scheduler
+		sr  StateRepository
 
-		EventCh     chan Event
+		EventCh chan Event
 
 		workloadsMu sync.RWMutex
 		workloads   map[string]workload
@@ -27,7 +27,7 @@ type (
 		failMu      sync.Mutex
 		failCounter map[string]int
 
-		config      config
+		config config
 	}
 	config struct {
 		id          string
@@ -80,8 +80,8 @@ const (
 )
 
 var (
-	ErrWorkloadNotFound = errors.New("managed object does not exist")
-	ErrWorkloadExists   = errors.New("managed object already exist")
+	ErrWorkloadNotFound = errors.New("workload does not exist")
+	ErrWorkloadExists   = errors.New("workload already exist")
 	ErrScheduleCleanup  = errors.New("failed to clean up scheduler")
 )
 
@@ -94,7 +94,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		workloads:   make(map[string]workload),
 		EventCh:     make(chan Event),
 		failCounter: map[string]int{},
-		config:      config{
+		config: config{
 			id:          uuid.NewString(),
 			splayHi:     DEFAULT_SPLAY_HI,
 			splayLo:     DEFAULT_SPLAY_LO,
@@ -109,7 +109,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	for _, opt := range opts {
 		opt(worker)
 	}
-  
+
 	if worker.sr == nil {
 		worker.sr = store.New()
 	}
@@ -214,17 +214,17 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 	w.workloadsMu.Lock()
 	defer w.workloadsMu.Unlock()
 
-	mo, exists := w.workloads[name]
+	wl, exists := w.workloads[name]
 	if !exists {
 		return ErrWorkloadNotFound
 	}
 
-	if err := mo.object.Stop(); err != nil {
+	if err := wl.object.Stop(); err != nil {
 		return err
 	}
 
 	// clean up schedule, but do not return on error
-	if err := w.sc.RemoveJob(mo.jid); err != nil {
+	if err := w.sc.RemoveJob(wl.jid); err != nil {
 		err = fmt.Errorf("%w: %v", ErrScheduleCleanup, err) //nolint:all
 	}
 
@@ -284,7 +284,7 @@ func (w *Worker) GetWorkerID() string {
 // Checks current state on a workload
 func (w *Worker) stateCheck(host string) func(context.Context) {
 	return func(ctx context.Context) {
-		mo, exists := w.workloads[host]
+		wl, exists := w.workloads[host]
 		if !exists {
 			return
 		}
@@ -292,7 +292,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		w.failMu.Lock()
 		defer w.failMu.Unlock()
 
-		if err := mo.object.Ping(ctx); err != nil {
+		if err := wl.object.Ping(ctx); err != nil {
 			w.EventCh <- *NewWorkloadUnreachableEvent(w.config.id, host)
 			w.failCounter[host] += 1
 		} else {

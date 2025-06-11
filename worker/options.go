@@ -60,7 +60,7 @@ func WithExternalState(sr StateRepository) Option {
 }
 
 // Provide options for the workers gocron scheduler
-func WithGocronOpt(opt gocron.SchedulerOption) Option {
+func WithSchedulerOption(opt gocron.SchedulerOption) Option {
 	return func(w *Worker) {
 		w.scOpts = append(w.scOpts, opt)
 	}

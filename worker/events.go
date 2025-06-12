@@ -1,9 +1,9 @@
 package worker
 
 type Event struct {
-	EventType    EventType `json:"event_type"`
+	EventType    EventType `json:"eventType"`
 	Worker       string    `json:"manager"`
-	WorkloadName string    `json:"managed_object"`
+	WorkloadName string    `json:"workloadName"`
 	Message      string    `json:"msg"`
 }
 
@@ -16,7 +16,7 @@ const (
 	EventDead
 )
 
-func (e EventType) ToString() string {
+func (e EventType) String() string {
 	switch e {
 	case EventInitialized:
 		return "EventInitialized"

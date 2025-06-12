@@ -15,11 +15,12 @@ import (
 
 type (
 	Worker struct {
-		ctx         context.Context
-		sc          gocron.Scheduler
-		sr          StateRepository
+		ctx    context.Context
+		sc     gocron.Scheduler
+		scOpts []gocron.SchedulerOption
+		sr     StateRepository
 
-		EventCh     chan Event
+		EventCh chan Event
 
 		workloadsMu sync.RWMutex
 		workloads   map[string]workload
@@ -27,7 +28,7 @@ type (
 		failMu      sync.Mutex
 		failCounter map[string]int
 
-		config      config
+		config config
 	}
 	config struct {
 		id          string
@@ -80,8 +81,8 @@ const (
 )
 
 var (
-	ErrWorkloadNotFound = errors.New("managed object does not exist")
-	ErrWorkloadExists   = errors.New("managed object already exist")
+	ErrWorkloadNotFound = errors.New("workload does not exist")
+	ErrWorkloadExists   = errors.New("workload already exist")
 	ErrScheduleCleanup  = errors.New("failed to clean up scheduler")
 )
 
@@ -94,13 +95,16 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		workloads:   make(map[string]workload),
 		EventCh:     make(chan Event),
 		failCounter: map[string]int{},
-		config:      config{
+		config: config{
 			id:          uuid.NewString(),
 			splayHi:     DEFAULT_SPLAY_HI,
 			splayLo:     DEFAULT_SPLAY_LO,
 			pingTimeout: DEFAULT_PING_TIMEOUT,
 			maxPingDown: DEFAULT_MAX_PINGDOWN,
 			eventCbs:    make([]func(context.Context, Event), 0),
+		},
+		scOpts: []gocron.SchedulerOption{
+			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
 		},
 	}
 
@@ -109,18 +113,19 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	for _, opt := range opts {
 		opt(worker)
 	}
-  
+
 	if worker.sr == nil {
 		worker.sr = store.New()
 	}
 
-	if worker.sc, err = gocron.NewScheduler(); err != nil {
+	if worker.sc, err = gocron.NewScheduler(worker.scOpts...); err != nil {
 		return worker, err
 	}
 
 	if _, err = worker.sc.NewJob(
 		gocron.DurationJob(10*time.Second),
 		gocron.NewTask(worker.garbageCollector),
+		gocron.WithName("garbage collector"),
 		gocron.WithContext(ctx),
 	); err != nil {
 		return worker, err
@@ -188,6 +193,7 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 	job, err := w.sc.NewJob(
 		gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
 		gocron.NewTask(w.stateCheck(wl.Name())),
+		gocron.WithName(fmt.Sprintf("worker state check: %s", wl.Name())),
 		gocron.WithContext(ctx),
 	)
 	if err != nil {
@@ -212,17 +218,17 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 	w.workloadsMu.Lock()
 	defer w.workloadsMu.Unlock()
 
-	mo, exists := w.workloads[name]
+	wl, exists := w.workloads[name]
 	if !exists {
 		return ErrWorkloadNotFound
 	}
 
-	if err := mo.object.Stop(); err != nil {
+	if err := wl.object.Stop(); err != nil {
 		return err
 	}
 
 	// clean up schedule, but do not return on error
-	if err := w.sc.RemoveJob(mo.jid); err != nil {
+	if err := w.sc.RemoveJob(wl.jid); err != nil {
 		err = fmt.Errorf("%w: %v", ErrScheduleCleanup, err) //nolint:all
 	}
 
@@ -282,7 +288,7 @@ func (w *Worker) GetWorkerID() string {
 // Checks current state on a workload
 func (w *Worker) stateCheck(host string) func(context.Context) {
 	return func(ctx context.Context) {
-		mo, exists := w.workloads[host]
+		wl, exists := w.workloads[host]
 		if !exists {
 			return
 		}
@@ -290,7 +296,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		w.failMu.Lock()
 		defer w.failMu.Unlock()
 
-		if err := mo.object.Ping(ctx); err != nil {
+		if err := wl.object.Ping(ctx); err != nil {
 			w.EventCh <- *NewWorkloadUnreachableEvent(w.config.id, host)
 			w.failCounter[host] += 1
 		} else {

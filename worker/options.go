@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"time"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 type Option func(*Worker)
@@ -54,5 +56,12 @@ func WithEventCallback(fn func(context.Context, Event)) Option {
 func WithExternalState(sr StateRepository) Option {
 	return func(w *Worker) {
 		w.sr = sr
+	}
+}
+
+// Provide options for the workers gocron scheduler
+func WithSchedulerOption(opt gocron.SchedulerOption) Option {
+	return func(w *Worker) {
+		w.scOpts = append(w.scOpts, opt)
 	}
 }

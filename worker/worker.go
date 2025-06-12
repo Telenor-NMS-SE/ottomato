@@ -15,9 +15,10 @@ import (
 
 type (
 	Worker struct {
-		ctx context.Context
-		sc  gocron.Scheduler
-		sr  StateRepository
+		ctx    context.Context
+		sc     gocron.Scheduler
+		scOpts []gocron.SchedulerOption
+		sr     StateRepository
 
 		EventCh chan Event
 
@@ -102,6 +103,9 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 			maxPingDown: DEFAULT_MAX_PINGDOWN,
 			eventCbs:    make([]func(context.Context, Event), 0),
 		},
+		scOpts: []gocron.SchedulerOption{
+			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
+		},
 	}
 
 	worker.config.eventCbs = append(worker.config.eventCbs, worker.stateUpdateCb)
@@ -114,7 +118,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		worker.sr = store.New()
 	}
 
-	if worker.sc, err = gocron.NewScheduler(); err != nil {
+	if worker.sc, err = gocron.NewScheduler(worker.scOpts...); err != nil {
 		return worker, err
 	}
 

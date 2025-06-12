@@ -103,7 +103,9 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 			maxPingDown: DEFAULT_MAX_PINGDOWN,
 			eventCbs:    make([]func(context.Context, Event), 0),
 		},
-		scOpts: []gocron.SchedulerOption{},
+		scOpts: []gocron.SchedulerOption{
+			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
+		},
 	}
 
 	worker.config.eventCbs = append(worker.config.eventCbs, worker.stateUpdateCb)

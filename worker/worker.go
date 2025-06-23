@@ -293,10 +293,13 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 			return
 		}
 
+		//moving ping before lock, can be longrunning dont want to tie upp the mutex
+		err := wl.object.Ping(ctx)
+
 		w.failMu.Lock()
 		defer w.failMu.Unlock()
 
-		if err := wl.object.Ping(ctx); err != nil {
+		if err != nil {
 			w.EventCh <- *NewWorkloadUnreachableEvent(w.config.id, host)
 			w.failCounter[host] += 1
 		} else {

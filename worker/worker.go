@@ -288,6 +288,9 @@ func (w *Worker) GetWorkerID() string {
 // Checks current state on a workload
 func (w *Worker) stateCheck(host string) func(context.Context) {
 	return func(ctx context.Context) {
+		ctx, cancel := context.WithTimeout(ctx, w.config.pingTimeout)
+		defer cancel()
+
 		wl, exists := w.workloads[host]
 		if !exists {
 			return

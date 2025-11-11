@@ -15,11 +15,11 @@ import (
 
 type (
 	Worker struct {
-		ctx         context.Context
-		sc          gocron.Scheduler
-		sr          StateRepository
+		ctx context.Context
+		sc  gocron.Scheduler
+		sr  StateRepository
 
-		EventCh     chan Event
+		EventCh chan Event
 
 		workloadsMu sync.RWMutex
 		workloads   map[string]workload
@@ -27,7 +27,7 @@ type (
 		failMu      sync.Mutex
 		failCounter map[string]int
 
-		config      config
+		config config
 	}
 	config struct {
 		id          string
@@ -94,7 +94,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		workloads:   make(map[string]workload),
 		EventCh:     make(chan Event),
 		failCounter: map[string]int{},
-		config:      config{
+		config: config{
 			id:          uuid.NewString(),
 			splayHi:     DEFAULT_SPLAY_HI,
 			splayLo:     DEFAULT_SPLAY_LO,
@@ -109,7 +109,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	for _, opt := range opts {
 		opt(worker)
 	}
-  
+
 	if worker.sr == nil {
 		worker.sr = store.New()
 	}

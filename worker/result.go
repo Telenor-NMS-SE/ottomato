@@ -25,7 +25,7 @@ type Result struct {
 func (r Result) MarshalJSON() ([]byte, error) {
 	type res Result
 
-	return json.Marshal(&struct{
+	return json.Marshal(&struct {
 		res
 		Error *string `json:"error"`
 	}{
@@ -44,7 +44,7 @@ func (r Result) MarshalJSON() ([]byte, error) {
 func (r *Result) UnmarshalJSON(input []byte) error {
 	type res Result
 
-	tmp := &struct{
+	tmp := &struct {
 		res
 		Error *string `json:"error"`
 	}{

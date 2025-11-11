@@ -32,8 +32,10 @@ type Manager struct {
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
-		id:  uuid.NewString(),
-		ctx: ctx,
+		id:                   uuid.NewString(),
+		ctx:                  ctx,
+		distributionInterval: time.Minute,
+		rebalanceInterval:    time.Minute,
 	}
 
 	for _, opt := range opts {
@@ -47,6 +49,26 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	if err != nil {
 		return mgr, err
 	}
+
+	// Add scheduled job for (re)distribution of workloads
+	if _, err := mgr.scheduler.NewJob(
+		gocron.DurationJob(mgr.distributionInterval),
+		gocron.NewTask(mgr.distributor),
+		gocron.WithContext(ctx),
+	); err != nil {
+		return mgr, err
+	}
+
+	// Add scheduled job for rebalancing workloads on workers
+	if _, err := mgr.scheduler.NewJob(
+		gocron.DurationJob(mgr.rebalanceInterval),
+		gocron.NewTask(mgr.rebalance),
+		gocron.WithContext(ctx),
+	); err != nil {
+		return mgr, err
+	}
+
+	// Add scheduled job for workloads stuck in distributing?
 
 	mgr.scheduler.Start()
 

@@ -1,5 +1,7 @@
 package manager
 
+import "fmt"
+
 func (m *Manager) distributor() {
 	m.workersMu.RLock()
 	m.workloadsMu.RLock()
@@ -12,6 +14,7 @@ func (m *Manager) distributor() {
 		}
 
 		low, _, _ := m.ChatGPTSortDelta()
+		fmt.Printf("Low is: %s\n", low)
 		if worker, ok := m.workers[low]; ok {
 			if err := worker.Load(workload); err != nil {
 				m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)

@@ -3,12 +3,8 @@
 install:
 	@go mod download
 
-githoooks:
-	@for hook in .githooks/*; do \
-		name=$$(basename $$hook); \
-		rm -f .git/hooks/$$name; \
-		ln -s ../../$$name .git/hooks/$$name; \
-	done
+githooks:
+	@git config core.hooksPath .githooks
 
 setup: install githooks
 

@@ -1,6 +1,7 @@
 package manager
 
 import "fmt"
+import "sort"
 
 func (m *Manager) distributor() {
 	m.workersMu.RLock()
@@ -92,4 +93,37 @@ func (m *Manager) ChatGPTSortDelta() (string, string, uint32) {
 	}
 
 	return maxVal, minVal, maxCount - minCount
+}
+
+func (m *Manager) sort() (string, string, uint32) {
+	counters := map[string]uint32{}
+	for _, workerId := range m.distributions {
+		counters[workerId] += 1
+	}
+
+	for workerId := range m.workers {
+		if _, ok := counters[workerId]; !ok {
+			counters[workerId] = 0
+		}
+	}
+
+	type tmp struct {
+		Key   string
+		Value uint32
+	}
+
+	s := make([]tmp, 0, len(counters))
+	for k, v := range counters {
+		s = append(s, tmp{Key: k, Value: v})
+	}
+
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].Value < s[j].Value
+	})
+
+	if len(s) > 0 {
+		return s[0].Key, s[len(s)-1].Key, s[len(s)-1].Value - s[0].Value
+	}
+
+	return "", "", 0
 }

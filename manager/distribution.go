@@ -17,6 +17,10 @@ func (m *Manager) distributor() {
 				m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)
 			} else {
 				m.eventCh <- NewWorkloadDistributedEvent(m.id, worker.GetID(), workload)
+				m.distributionsMu.Lock()
+				m.distributions[workload.GetID()] = worker.GetID()
+				m.distributionsMu.Unlock()
+				workload.SetState(StateRunning)
 			}
 		}
 
@@ -51,8 +55,9 @@ func (m *Manager) rebalance() {
 			if !ok {
 				continue
 			}
-
+			delete(m.distributions, workloadId)
 			wl.SetState(StateInit)
+
 		}
 		m.workloadsMu.RUnlock()
 		m.distributionsMu.Unlock()

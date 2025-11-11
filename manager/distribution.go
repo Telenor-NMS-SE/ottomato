@@ -1,6 +1,26 @@
 package manager
 
 func (m *Manager) distributor() {
+	m.workersMu.RLock()
+	m.workloadsMu.RLock()
+	defer m.workersMu.RUnlock()
+	defer m.workloadsMu.RUnlock()
+
+	for _, workload := range m.workloads {
+		if workload.GetState() != StateInit {
+			continue
+		}
+
+		low, _, _ := m.ChatGPTSortDelta()
+		if worker, ok := m.workers[low]; ok {
+			if err := worker.Load(workload); err != nil {
+				m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)
+			} else {
+				m.eventCh <- NewWorkloadDistributedEvent(m.id, worker.GetID(), workload)
+			}
+		}
+
+	}
 
 }
 

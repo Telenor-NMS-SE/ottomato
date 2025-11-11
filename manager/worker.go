@@ -5,6 +5,7 @@ import "errors"
 type Worker interface {
 	GetID() string
 	Unload(uint32) ([]string, error)
+	Load(Workload) error
 }
 
 var ErrWorkerExists = errors.New("worker already exists")

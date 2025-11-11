@@ -24,9 +24,13 @@ func (w *MockWorker) Unload(amount uint32) ([]string, error) {
 	return unloaded, nil
 }
 
+func (w *MockWorker) Load(wl Workload) error {
+	return nil
+}
+
 func TestAddWorker(t *testing.T) {
 	manager := Manager{
-		workers:  map[string]Worker{},
+		workers: map[string]Worker{},
 	}
 	worker := MockWorker{"test"}
 

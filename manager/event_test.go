@@ -9,10 +9,12 @@ import (
 
 func TestEventTypeSerialize(t *testing.T) {
 	cases := map[EventType][]byte{
-		EventWorkerAdded:     []byte(`"worker.added"`),
-		EventWorkerDeleted:   []byte(`"worker.deleted"`),
-		EventWorkloadAdded:   []byte(`"workload.added"`),
-		EventWorkloadDeleted: []byte(`"workload.deleted"`),
+		EventWorkerAdded:              []byte(`"worker.added"`),
+		EventWorkerDeleted:            []byte(`"worker.deleted"`),
+		EventWorkloadAdded:            []byte(`"workload.added"`),
+		EventWorkloadDeleted:          []byte(`"workload.deleted"`),
+		EventWorkloadDistributed:      []byte(`"workload.distributed"`),
+		EventWorkloadDistributedError: []byte(`"workload.distributed.error"`),
 	}
 
 	for input, exp := range cases {
@@ -40,10 +42,12 @@ func TestEventTypeSerializeError(t *testing.T) {
 
 func TestEventTypeDeserialize(t *testing.T) {
 	cases := map[string]EventType{
-		`"worker.added"`:     EventWorkerAdded,
-		`"worker.deleted"`:   EventWorkerDeleted,
-		`"workload.added"`:   EventWorkloadAdded,
-		`"workload.deleted"`: EventWorkloadDeleted,
+		`"worker.added"`:               EventWorkerAdded,
+		`"worker.deleted"`:             EventWorkerDeleted,
+		`"workload.added"`:             EventWorkloadAdded,
+		`"workload.deleted"`:           EventWorkloadDeleted,
+		`"workload.distributed"`:       EventWorkloadDistributed,
+		`"workload.distributed.error"`: EventWorkloadDistributedError,
 	}
 
 	for input, exp := range cases {

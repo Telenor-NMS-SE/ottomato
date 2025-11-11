@@ -9,6 +9,7 @@ type Event struct {
 	Type       EventType `json:"type"`
 	ManagerID  string    `json:"managerId"`
 	ResourceID string    `json:"resourceId"`
+	WorkerID   string    `json:"workerId,omitempty"`
 }
 
 var (
@@ -23,6 +24,9 @@ const (
 
 	EventWorkloadAdded
 	EventWorkloadDeleted
+
+	EventWorkloadDistributed
+	EventWorkloadDistributedError
 )
 
 func (e EventType) String() string {
@@ -35,6 +39,10 @@ func (e EventType) String() string {
 		return "workload.added"
 	case EventWorkloadDeleted:
 		return "workload.deleted"
+	case EventWorkloadDistributed:
+		return "workload.distributed"
+	case EventWorkloadDistributedError:
+		return "workload.distributed.error"
 	default:
 		return ""
 	}
@@ -59,6 +67,10 @@ func (e *EventType) UnmarshalJSON(val []byte) error {
 		*e = EventWorkloadAdded
 	case `"workload.deleted"`:
 		*e = EventWorkloadDeleted
+	case `"workload.distributed"`:
+		*e = EventWorkloadDistributed
+	case `"workload.distributed.error"`:
+		*e = EventWorkloadDistributedError
 	default:
 		return ErrInvalidEvent
 	}
@@ -94,6 +106,24 @@ func NewWorkloadDeletedEvent(managerId string, workload Workload) *Event {
 	return &Event{
 		Type:       EventWorkloadDeleted,
 		ManagerID:  managerId,
+		ResourceID: workload.GetID(),
+	}
+}
+
+func NewWorkloadDistributedEvent(managerId, workerId string, workload Workload) *Event {
+	return &Event{
+		Type:       EventWorkloadDistributed,
+		ManagerID:  managerId,
+		WorkerID:   workerId,
+		ResourceID: workload.GetID(),
+	}
+}
+
+func NewWorkloadDistributedErrorEvent(managerId, workerId string, workload Workload) *Event {
+	return &Event{
+		Type:       EventWorkloadDistributedError,
+		ManagerID:  managerId,
+		WorkerID:   workerId,
 		ResourceID: workload.GetID(),
 	}
 }

@@ -1,35 +1,38 @@
 package manager
 
-import "fmt"
 import "sort"
 
 func (m *Manager) distributor() {
-	m.workersMu.RLock()
 	m.workloadsMu.RLock()
-	defer m.workersMu.RUnlock()
 	defer m.workloadsMu.RUnlock()
+
+	m.workersMu.RLock()
+	defer m.workersMu.RUnlock()
 
 	for _, workload := range m.workloads {
 		if workload.GetState() != StateInit {
 			continue
 		}
 
-		low, _, _ := m.ChatGPTSortDelta()
-		fmt.Printf("Low is: %s\n", low)
-		if worker, ok := m.workers[low]; ok {
+		lo, _, _ := m.sort()
+		if worker, ok := m.workers[lo]; ok {
 			if err := worker.Load(workload); err != nil {
-				m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)
+				if m.eventCh != nil {
+					m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)
+				}
 			} else {
-				m.eventCh <- NewWorkloadDistributedEvent(m.id, worker.GetID(), workload)
+				if m.eventCh != nil {
+					m.eventCh <- NewWorkloadDistributedEvent(m.id, worker.GetID(), workload)
+				}
+
 				m.distributionsMu.Lock()
 				m.distributions[workload.GetID()] = worker.GetID()
 				m.distributionsMu.Unlock()
+
 				workload.SetState(StateDistributing)
 			}
 		}
-
 	}
-
 }
 
 func (m *Manager) rebalance() {
@@ -37,7 +40,7 @@ func (m *Manager) rebalance() {
 	defer m.workersMu.RUnlock()
 
 	for {
-		_, hi, delta := m.ChatGPTSortDelta()
+		_, hi, delta := m.sort()
 		if delta <= 5 {
 			break
 		}
@@ -68,34 +71,11 @@ func (m *Manager) rebalance() {
 	}
 }
 
-// Use with caution: This is copy-pasted!
-func (m *Manager) ChatGPTSortDelta() (string, string, uint32) {
+// requires, but does not acquire an RLock on m.workersMu
+func (m *Manager) sort() (string, string, uint32) {
 	m.distributionsMu.RLock()
 	defer m.distributionsMu.RUnlock()
 
-	counts := make(map[string]uint32)
-	for _, value := range m.distributions {
-		counts[value]++
-	}
-
-	var minVal, maxVal string
-	minCount, maxCount := uint32(^uint32(0)>>1), uint32(0)
-
-	for val, count := range counts {
-		if count < minCount {
-			minCount = count
-			minVal = val
-		}
-		if count > maxCount {
-			maxCount = count
-			maxVal = val
-		}
-	}
-
-	return maxVal, minVal, maxCount - minCount
-}
-
-func (m *Manager) sort() (string, string, uint32) {
 	counters := map[string]uint32{}
 	for _, workerId := range m.distributions {
 		counters[workerId] += 1

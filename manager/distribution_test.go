@@ -5,17 +5,17 @@ import "testing"
 func TestDistributor(t *testing.T) {
 	mgr := &Manager{
 		workers: map[string]Worker{
-			"worker1": &MockWorker{},
-			"worker2": &MockWorker{},
+			"worker1": &MockWorker{id: "worker1"},
+			"worker2": &MockWorker{id: "worker2"},
 		},
 		workloads: map[string]Workload{
-			"workload1": &MockWorkload{},
-			"workload2": &MockWorkload{},
-			"workload3": &MockWorkload{},
-			"workload4": &MockWorkload{},
-			"workload5": &MockWorkload{},
-			"workload6": &MockWorkload{},
-			"workload7": &MockWorkload{},
+			"workload1": &MockWorkload{id: "worker1"},
+			"workload2": &MockWorkload{id: "worker2"},
+			"workload3": &MockWorkload{id: "worker3"},
+			"workload4": &MockWorkload{id: "worker4"},
+			"workload5": &MockWorkload{id: "worker5"},
+			"workload6": &MockWorkload{id: "worker6"},
+			"workload7": &MockWorkload{id: "worker7"},
 		},
 		distributions: map[string]string{},
 	}

@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
@@ -24,6 +25,9 @@ type Manager struct {
 
 	distributionsMu sync.RWMutex
 	distributions   map[string]string // workload1-oiIAODWoa: worker1-oiDHawoda
+
+	distributionInterval time.Duration
+	rebalanceInterval    time.Duration
 }
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {

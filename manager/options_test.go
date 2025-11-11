@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func TestWithManagerID(t *testing.T) {
@@ -25,5 +26,23 @@ func TestWithEventCallback(t *testing.T) {
 
 	if exp, recv := 1, len(mgr.eventCbs); exp != recv {
 		t.Fatalf("expected to have %d callbacks registered, but got: %d", exp, recv)
+	}
+}
+
+func TestWithDistributionInterval(t *testing.T) {
+	mgr := &Manager{}
+	WithDistributorInterval(time.Hour)(mgr)
+
+	if exp, recv := time.Hour, mgr.distributionInterval; exp != recv {
+		t.Errorf("expected distribution interval to be '%s', but got '%s'", exp, recv)
+	}
+}
+
+func TestWithRebalanceInterval(t *testing.T) {
+	mgr := &Manager{}
+	WithRebalanceInterval(time.Minute)(mgr)
+
+	if exp, recv := time.Minute, mgr.rebalanceInterval; exp != recv {
+		t.Errorf("expected rebalance interval to be '%s', but got '%s'", exp, recv)
 	}
 }

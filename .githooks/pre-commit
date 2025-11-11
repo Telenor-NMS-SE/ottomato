@@ -1,2 +1,15 @@
-go test -v ./...
-go fmt ./...
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go' || true)
+
+go test ./...
+echo "\n";
+
+echo "staged files:";
+echo "$staged" | awk '{print "\t- " $0}';
+
+unformatted=$(gofmt -l $staged)
+if [ -n "$unformatted" ]; then
+	echo "\nThe following files are unformatted:";
+	echo "$unformatted" | awk '{print "\t- " $0}'
+	echo "Run go fmt ./... to fix.";
+	exit 1;
+fi

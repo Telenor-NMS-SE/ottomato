@@ -16,7 +16,7 @@ var ErrWorkloadExists = errors.New("workload already exists")
 
 func (m *Manager) Workloads() []Workload {
 	m.workloadsMu.RLock()
-	defer m.workersMu.RUnlock()
+	defer m.workloadsMu.RUnlock()
 
 	workloads := make([]Workload, 0, len(m.workloads))
 	for _, wl := range m.workloads {

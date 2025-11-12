@@ -95,16 +95,12 @@ func TestDeleteWorker(t *testing.T) {
 
 func TestGetWorkers(t *testing.T) {
 	manager := Manager{
-		workers: map[string]Worker{},
-	}
-	worker := MockWorker{id: "test"}
-
-	if err := manager.AddWorker(&worker); err != nil {
-		t.Fatalf("unexpected error when adding a worker: %v", err)
+		workers: map[string]Worker{
+			"test": &MockWorker{id: "test"},
+		},
 	}
 
 	workers := manager.Workers()
-
 	if len(workers) != 1 {
 		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workers))
 	}

@@ -81,7 +81,7 @@ func (m *Manager) sort() (string, string, uint32) {
 	m.distributionsMu.RLock()
 	defer m.distributionsMu.RUnlock()
 
-	counters := map[string]uint32{}
+	counters := make(map[string]uint32, len(m.workers))
 	for _, workerId := range m.distributions {
 		counters[workerId] += 1
 	}

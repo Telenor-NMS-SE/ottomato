@@ -32,10 +32,14 @@ type Manager struct {
 	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
 }
 
+type ctxScope string
+
+const ctxScopeKey = "scope"
+
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
 		id:                   uuid.NewString(),
-		ctx:                  context.WithValue(ctx, "scope", "local"),
+		ctx:                  context.WithValue(ctx, ctxScopeKey, "local"),
 		distributionInterval: time.Minute,
 		rebalanceInterval:    time.Minute,
 		cleanupInterval:      time.Minute * 5,

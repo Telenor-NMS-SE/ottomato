@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         go get -t ./...
-        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@2.6.1
 
     - name: Run linter
       run: golangci-lint run

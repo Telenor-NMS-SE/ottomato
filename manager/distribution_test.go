@@ -39,30 +39,40 @@ func TestRebalancer(t *testing.T) {
 			"worker-1": &MockWorker{id: "worker-1"},
 		},
 		workloads: map[string]Workload{
-			"workload-0": &MockWorkload{id: "worker-0"},
-			"workload-1": &MockWorkload{id: "worker-1"},
-			"workload-2": &MockWorkload{id: "worker-2"},
-			"workload-3": &MockWorkload{id: "worker-3"},
-			"workload-4": &MockWorkload{id: "worker-4"},
-			"workload-5": &MockWorkload{id: "worker-5"},
-			"workload-6": &MockWorkload{id: "worker-6"},
-			"workload-7": &MockWorkload{id: "worker-7"},
+			"workload-0":  &MockWorkload{id: "workerload-0"},
+			"workload-1":  &MockWorkload{id: "workerload-1"},
+			"workload-2":  &MockWorkload{id: "workerload-2"},
+			"workload-3":  &MockWorkload{id: "workerload-3"},
+			"workload-4":  &MockWorkload{id: "workerload-4"},
+			"workload-5":  &MockWorkload{id: "workerload-5"},
+			"workload-6":  &MockWorkload{id: "workerload-6"},
+			"workload-7":  &MockWorkload{id: "workerload-7"},
+			"workload-8":  &MockWorkload{id: "workerload-8"},
+			"workload-9":  &MockWorkload{id: "workerload-9"},
+			"workload-10": &MockWorkload{id: "workerload-10"},
+			"workload-11": &MockWorkload{id: "workerload-11"},
+			"workload-12": &MockWorkload{id: "workerload-12"},
 		},
 		distributions: map[string]string{
-			"workload-0": "worker-1",
-			"workload-1": "worker-1",
-			"workload-2": "worker-1",
-			"workload-3": "worker-1",
-			"workload-4": "worker-1",
-			"workload-5": "worker-1",
-			"workload-6": "worker-1",
-			"workload-7": "worker-1",
+			"workload-0":  "worker-1",
+			"workload-1":  "worker-1",
+			"workload-2":  "worker-1",
+			"workload-3":  "worker-1",
+			"workload-4":  "worker-1",
+			"workload-5":  "worker-1",
+			"workload-6":  "worker-1",
+			"workload-7":  "worker-1",
+			"workload-8":  "worker-0",
+			"workload-9":  "worker-0",
+			"workload-10": "worker-0",
+			"workload-11": "worker-0",
+			"workload-12": "worker-0",
 		},
 	}
 	mgr.rebalance()
 
 	_, _, delta := mgr.sort()
-	if delta != DELTA_MAX {
+	if delta > DELTA_MAX {
 		t.Errorf("expected delta of rebalanced workloads to be no more than %d, got: %d", DELTA_MAX, delta)
 	}
 }

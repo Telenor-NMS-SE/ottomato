@@ -15,5 +15,5 @@ test:
 
 coverage:
 	go test -coverprofile=.coverage -coverpkg=./... ./...
-	go tool cover -html .coverage -o cover.html
+	go tool cover -html .coverage -o coverage.html
 	rm .coverage

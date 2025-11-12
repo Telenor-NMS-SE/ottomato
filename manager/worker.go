@@ -1,6 +1,9 @@
 package manager
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Worker interface {
 	GetID() string
@@ -14,8 +17,10 @@ func (m *Manager) Workers() []Worker {
 	m.workersMu.RLock()
 	defer m.workersMu.RUnlock()
 
-	workers := make([]Worker, len(m.workers))
-	for _, w := range m.workers {
+	workers := make([]Worker, 0, len(m.workers))
+	for k, w := range m.workers {
+		fmt.Printf("key: %s, value: %s\n", k, w.GetID())
+
 		workers = append(workers, w)
 	}
 

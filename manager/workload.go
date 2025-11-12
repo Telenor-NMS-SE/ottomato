@@ -18,7 +18,7 @@ func (m *Manager) Workloads() []Workload {
 	m.workloadsMu.RLock()
 	defer m.workersMu.RUnlock()
 
-	workloads := make([]Workload, len(m.workloads))
+	workloads := make([]Workload, 0, len(m.workloads))
 	for _, wl := range m.workloads {
 		workloads = append(workloads, wl)
 	}

@@ -92,3 +92,28 @@ func TestDeleteWorker(t *testing.T) {
 		t.Fatalf("expected worker count to be exactly 0, but got: %d", len(manager.workers))
 	}
 }
+
+func TestGetWorkers(t *testing.T) {
+	manager := Manager{
+		workers: map[string]Worker{},
+	}
+	worker := MockWorker{id: "test"}
+
+	if err := manager.AddWorker(&worker); err != nil {
+		t.Fatalf("unexpected error when adding a worker: %v", err)
+	}
+
+	workers := manager.Workers()
+
+	if len(workers) != 1 {
+		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workers))
+	}
+
+	if workers[0] == nil {
+		t.Fatalf("expected the one worker to be a pointer, but got <nil>")
+	}
+
+	if workers[0].GetID() != "test" {
+		t.Fatalf("expected the one worker to be 'test', but got: %s", workers[0].GetID())
+	}
+}

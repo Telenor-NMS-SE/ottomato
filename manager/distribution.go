@@ -1,6 +1,10 @@
 package manager
 
-import "sort"
+import (
+	"sort"
+)
+
+const DELTA_MAX = 5
 
 func (m *Manager) distributor() {
 	m.workloadsMu.RLock()
@@ -40,8 +44,9 @@ func (m *Manager) rebalance() {
 	defer m.workersMu.RUnlock()
 
 	for {
+
 		_, hi, delta := m.sort()
-		if delta <= 5 {
+		if delta <= DELTA_MAX {
 			break
 		}
 
@@ -50,7 +55,7 @@ func (m *Manager) rebalance() {
 			continue
 		}
 
-		workloadIds, err := worker.Unload(delta)
+		workloadIds, err := worker.Unload(delta - DELTA_MAX)
 		if err != nil {
 			break
 		}

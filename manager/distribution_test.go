@@ -33,5 +33,36 @@ func TestDistributor(t *testing.T) {
 }
 
 func TestRebalancer(t *testing.T) {
+	mgr := &Manager{
+		workers: map[string]Worker{
+			"worker-0": &MockWorker{id: "worker-0"},
+			"worker-1": &MockWorker{id: "worker-1"},
+		},
+		workloads: map[string]Workload{
+			"workload-0": &MockWorkload{id: "worker-0"},
+			"workload-1": &MockWorkload{id: "worker-1"},
+			"workload-2": &MockWorkload{id: "worker-2"},
+			"workload-3": &MockWorkload{id: "worker-3"},
+			"workload-4": &MockWorkload{id: "worker-4"},
+			"workload-5": &MockWorkload{id: "worker-5"},
+			"workload-6": &MockWorkload{id: "worker-6"},
+			"workload-7": &MockWorkload{id: "worker-7"},
+		},
+		distributions: map[string]string{
+			"workload-0": "worker-1",
+			"workload-1": "worker-1",
+			"workload-2": "worker-1",
+			"workload-3": "worker-1",
+			"workload-4": "worker-1",
+			"workload-5": "worker-1",
+			"workload-6": "worker-1",
+			"workload-7": "worker-1",
+		},
+	}
+	mgr.rebalance()
 
+	_, _, delta := mgr.sort()
+	if delta != DELTA_MAX {
+		t.Errorf("expected delta of rebalanced workloads to be no more than %d, got: %d", DELTA_MAX, delta)
+	}
 }

@@ -7,7 +7,8 @@ import (
 )
 
 type MockWorker struct {
-	id string
+	id  string
+	mgr *Manager
 }
 
 func (w *MockWorker) GetID() string {
@@ -17,8 +18,22 @@ func (w *MockWorker) GetID() string {
 func (w *MockWorker) Unload(amount uint32) ([]string, error) {
 	unloaded := make([]string, 0, amount)
 
-	for i := range amount {
-		unloaded = append(unloaded, fmt.Sprintf("workload-%d", i))
+	if w.mgr == nil {
+		for i := range amount {
+			unloaded = append(unloaded, fmt.Sprintf("workload-%d", i))
+		}
+
+		return unloaded, nil
+	}
+
+	for workloadId, workerId := range w.mgr.distributions {
+		if uint32(len(unloaded)) >= amount {
+			break
+		}
+
+		if workerId == w.id {
+			unloaded = append(unloaded, workloadId)
+		}
 	}
 
 	return unloaded, nil
@@ -32,7 +47,7 @@ func TestAddWorker(t *testing.T) {
 	manager := Manager{
 		workers: map[string]Worker{},
 	}
-	worker := MockWorker{"test"}
+	worker := MockWorker{id: "test"}
 
 	if err := manager.AddWorker(&worker); err != nil {
 		t.Fatalf("unexpected error when adding a worker: %v", err)
@@ -53,7 +68,7 @@ func TestAddDuplicateWorker(t *testing.T) {
 			"test": &MockWorker{id: "test"},
 		},
 	}
-	worker := MockWorker{"test"}
+	worker := MockWorker{id: "test"}
 
 	err := manager.AddWorker(&worker)
 	if err == nil {
@@ -72,7 +87,7 @@ func TestDeleteWorker(t *testing.T) {
 		},
 	}
 
-	manager.DeleteWorker(&MockWorker{"test"})
+	manager.DeleteWorker(&MockWorker{id: "test"})
 	if len(manager.workers) > 0 {
 		t.Fatalf("expected worker count to be exactly 0, but got: %d", len(manager.workers))
 	}

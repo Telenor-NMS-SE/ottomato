@@ -34,7 +34,7 @@ type Manager struct {
 
 type ctxScope string
 
-const ctxScopeKey = "scope"
+const ctxScopeKey ctxScope = "scope"
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{

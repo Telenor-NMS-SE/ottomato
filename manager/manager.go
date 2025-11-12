@@ -38,8 +38,13 @@ const ctxScopeKey ctxScope = "scope"
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
-		id:                   uuid.NewString(),
-		ctx:                  context.WithValue(ctx, ctxScopeKey, "local"),
+		id:  uuid.NewString(),
+		ctx: context.WithValue(ctx, ctxScopeKey, "local"),
+
+		workers:       map[string]Worker{},
+		workloads:     map[string]Workload{},
+		distributions: map[string]string{},
+
 		distributionInterval: time.Minute,
 		rebalanceInterval:    time.Minute,
 		cleanupInterval:      time.Minute * 5,

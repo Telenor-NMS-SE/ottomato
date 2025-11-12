@@ -33,7 +33,7 @@ type Manager struct {
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
 		id:                   uuid.NewString(),
-		ctx:                  ctx,
+		ctx:                  context.WithValue(ctx, "scope", "local"),
 		distributionInterval: time.Minute,
 		rebalanceInterval:    time.Minute,
 	}
@@ -78,6 +78,7 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 }
 
 func (m *Manager) Stop() error {
+	m.ctx.Done()
 	return m.scheduler.Shutdown()
 }
 

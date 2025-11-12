@@ -1,2 +1,4 @@
 cmd/tmp/*
 tmp/*
+.coverage
+coverage.html

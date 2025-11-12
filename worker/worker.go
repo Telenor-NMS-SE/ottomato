@@ -16,9 +16,10 @@ import (
 type (
 	Worker struct {
 		ctx    context.Context
-		sc     gocron.Scheduler
 		scOpts []gocron.SchedulerOption
-		sr     StateRepository
+		sc     gocron.Scheduler
+
+		sr StateRepository
 
 		EventCh chan Event
 

@@ -1,6 +1,6 @@
 module github.com/Telenor-NMS-SE/ottomato
 
-go 1.24
+go 1.25.3
 
 require (
 	github.com/go-co-op/gocron/v2 v2.15.0

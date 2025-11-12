@@ -1,18 +1,38 @@
+version: "2"
+
 run:
-  timeout: 1m
-  issues-exit-code: 2
-  allow-parallel-runners: true
-presets:
-  - bugs
-  - comment
-  - complexity
-  - error
-  - format
-  - import
-  - metalinter
-  - module
-  - performance
-  - sql
-  - style
-  - test
-  - unused
+  timeout: 3m
+  tests: false
+
+linters:
+  default: standard
+  exclusions:
+    presets:
+      - std-error-handling
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: indent-error-flow
+      - name: errorf
+      - name: if-return
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: ".*_gen\\.go"
+      linters:
+        - errcheck
+        - staticcheck
+        - govet
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+

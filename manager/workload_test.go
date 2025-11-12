@@ -77,3 +77,24 @@ func TestDeleteWorkload(t *testing.T) {
 		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(manager.workers))
 	}
 }
+
+func TestGetWorkloads(t *testing.T) {
+	manager := Manager{
+		workloads: map[string]Workload{
+			"test": &MockWorkload{id: "test"},
+		},
+	}
+
+	workloads := manager.Workloads()
+	if len(workloads) != 1 {
+		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workloads))
+	}
+
+	if workloads[0] == nil {
+		t.Fatalf("expected the one worker to be a pointer, but got <nil>")
+	}
+
+	if workloads[0].GetID() != "test" {
+		t.Fatalf("expected the one worker to be 'test', but got: %s", workloads[0].GetID())
+	}
+}

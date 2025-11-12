@@ -33,14 +33,14 @@ func WithRebalanceInterval(t time.Duration) Option {
 	}
 }
 
-func WithDistributionCleanupInterval(t time.Duration) Option {
+func WithCleanupInterval(t time.Duration) Option {
 	return func(m *Manager) {
-		m.distributionCleanupInterval = t
+		m.cleanupInterval = t
 	}
 }
 
-func WithMaxDistributionTime(t time.Duration) Option {
+func WithCleanupMaxTime(t time.Duration) Option {
 	return func(m *Manager) {
-		m.distributionMaxTime = t
+		m.cleanupMaxTime = t
 	}
 }

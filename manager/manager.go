@@ -18,28 +18,28 @@ type Manager struct {
 	eventCh  chan (*Event)
 
 	workersMu sync.RWMutex
-	workers   map[string]Worker // worker1-oiDHawoda:   ..
+	workers   map[string]Worker
 
 	workloadsMu sync.RWMutex
-	workloads   map[string]Workload // workload1-oiIAODWoa: ..
+	workloads   map[string]Workload
 
 	distributionsMu sync.RWMutex
-	distributions   map[string]string // workload1-oiIAODWoa: worker1-oiDHawoda
+	distributions   map[string]string
 
-	distributionInterval        time.Duration
-	rebalanceInterval           time.Duration
-	distributionCleanupInterval time.Duration
-	distributionMaxTime         time.Duration
+	distributionInterval time.Duration
+	rebalanceInterval    time.Duration
+	cleanupInterval      time.Duration
+	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
 }
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
-		id:                          uuid.NewString(),
-		ctx:                         context.WithValue(ctx, "scope", "local"),
-		distributionInterval:        time.Minute,
-		rebalanceInterval:           time.Minute,
-		distributionCleanupInterval: time.Minute * 5,
-		distributionMaxTime:         time.Minute * 5,
+		id:                   uuid.NewString(),
+		ctx:                  context.WithValue(ctx, "scope", "local"),
+		distributionInterval: time.Minute,
+		rebalanceInterval:    time.Minute,
+		cleanupInterval:      time.Minute * 5,
+		cleanupMaxTime:       time.Minute * 5,
 	}
 
 	for _, opt := range opts {

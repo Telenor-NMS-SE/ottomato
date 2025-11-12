@@ -87,14 +87,18 @@ func TestDistributionCleanup(t *testing.T) {
 		},
 		workloads: map[string]Workload{
 			"workload-0": &MockWorkload{id: "workload-0", state: StateDistributing, stateChange: time.Now().Add(-time.Hour)},
+			"workload-1": &MockWorkload{id: "workload-1", state: StateErr, stateChange: time.Now().Add(-time.Hour)},
 		},
 		distributions: map[string]string{
 			"workload-0": "worker-0",
 		},
 	}
 
-	mgr.distributionCleanup()
+	mgr.cleanup()
 	if len(mgr.distributions) != 0 {
 		t.Errorf("expected distributed workloads to be empty, got: %d", len(mgr.distributions))
+	}
+	if mgr.workloads["workload-1"].GetState() != StateInit {
+		t.Errorf("expected errornous workload to have ben set to %s, got: %s", StateInit, mgr.workloads["workload-1"].GetState())
 	}
 }

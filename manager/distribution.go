@@ -7,23 +7,28 @@ import (
 
 const DELTA_MAX = 5
 
-func (m *Manager) distributionCleanup() {
+func (m *Manager) cleanup() {
 	m.workloadsMu.RLock()
 	defer m.workloadsMu.RUnlock()
 
 	for _, wl := range m.workloads {
-		if wl.GetState() != StateDistributing {
+
+		if time.Since(wl.LastStateChange()) < m.cleanupMaxTime {
 			continue
 		}
 
-		if time.Since(wl.LastStateChange()) < m.distributionMaxTime {
+		switch wl.GetState() {
+		case StateDistributing:
+			wl.SetState(StateErr)
+			m.distributionsMu.Lock()
+			delete(m.distributions, wl.GetID())
+			m.distributionsMu.Unlock()
+		case StateErr:
+			wl.SetState(StateInit)
+		default:
 			continue
 		}
 
-		wl.SetState(StateErr)
-		m.distributionsMu.Lock()
-		delete(m.distributions, wl.GetID())
-		m.distributionsMu.Unlock()
 	}
 }
 

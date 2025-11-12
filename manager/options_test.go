@@ -46,3 +46,20 @@ func TestWithRebalanceInterval(t *testing.T) {
 		t.Errorf("expected rebalance interval to be '%s', but got '%s'", exp, recv)
 	}
 }
+func TestWithCleanupInterval(t *testing.T) {
+	mgr := &Manager{}
+	WithCleanupInterval(time.Minute)(mgr)
+
+	if exp, recv := time.Minute, mgr.cleanupInterval; exp != recv {
+		t.Errorf("expected rebalance interval to be '%s', but got '%s'", exp, recv)
+	}
+}
+
+func TestWithCleanupMaxTime(t *testing.T) {
+	mgr := &Manager{}
+	WithCleanupMaxTime(time.Minute)(mgr)
+
+	if exp, recv := time.Minute, mgr.cleanupMaxTime; exp != recv {
+		t.Errorf("expected rebalance interval to be '%s', but got '%s'", exp, recv)
+	}
+}

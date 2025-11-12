@@ -77,6 +77,13 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	}
 
 	// Add scheduled job for workloads stuck in distributing?
+	if _, err := mgr.scheduler.NewJob(
+		gocron.DurationJob(mgr.cleanupInterval),
+		gocron.NewTask(mgr.cleanup),
+		gocron.WithContext(ctx),
+	); err != nil {
+		return mgr, err
+	}
 
 	mgr.scheduler.Start()
 

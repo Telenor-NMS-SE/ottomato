@@ -2,9 +2,30 @@ package manager
 
 import (
 	"sort"
+	"time"
 )
 
 const DELTA_MAX = 5
+
+func (m *Manager) distributionCleanup() {
+	m.workloadsMu.RLock()
+	defer m.workloadsMu.RUnlock()
+
+	for _, wl := range m.workloads {
+		if wl.GetState() != StateDistributing {
+			continue
+		}
+
+		if time.Since(wl.LastStateChange()) < m.distributionMaxTime {
+			continue
+		}
+
+		wl.SetState(StateErr)
+		m.distributionsMu.Lock()
+		delete(m.distributions, wl.GetID())
+		m.distributionsMu.Unlock()
+	}
+}
 
 func (m *Manager) distributor() {
 	m.workloadsMu.RLock()

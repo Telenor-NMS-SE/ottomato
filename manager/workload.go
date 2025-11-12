@@ -1,11 +1,15 @@
 package manager
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type Workload interface {
 	GetID() string
 	GetState() State
 	SetState(State)
+	LastStateChange() time.Time
 }
 
 var ErrWorkloadExists = errors.New("workload already exists")

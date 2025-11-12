@@ -1,6 +1,9 @@
 package manager
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestDistributor(t *testing.T) {
 	mgr := &Manager{
@@ -74,5 +77,24 @@ func TestRebalancer(t *testing.T) {
 	_, _, delta := mgr.sort()
 	if delta > DELTA_MAX {
 		t.Errorf("expected delta of rebalanced workloads to be no more than %d, got: %d", DELTA_MAX, delta)
+	}
+}
+
+func TestDistributionCleanup(t *testing.T) {
+	mgr := &Manager{
+		workers: map[string]Worker{
+			"worker-0": &MockWorker{id: "worker-0"},
+		},
+		workloads: map[string]Workload{
+			"workload-0": &MockWorkload{id: "workload-0", state: StateDistributing, stateChange: time.Now().Add(-time.Hour)},
+		},
+		distributions: map[string]string{
+			"workload-0": "worker-0",
+		},
+	}
+
+	mgr.distributionCleanup()
+	if len(mgr.distributions) != 0 {
+		t.Errorf("expected distributed workloads to be empty, got: %d", len(mgr.distributions))
 	}
 }

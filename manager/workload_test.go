@@ -3,11 +3,13 @@ package manager
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 type MockWorkload struct {
-	id    string
-	state State
+	id          string
+	state       State
+	stateChange time.Time
 }
 
 func (wl *MockWorkload) GetID() string {
@@ -15,11 +17,16 @@ func (wl *MockWorkload) GetID() string {
 }
 
 func (wl *MockWorkload) SetState(s State) {
+	wl.stateChange = time.Now()
 	wl.state = s
 }
 
 func (wl *MockWorkload) GetState() State {
 	return wl.state
+}
+
+func (wl *MockWorkload) LastStateChange() time.Time {
+	return wl.stateChange
 }
 
 func TestAddWorkload(t *testing.T) {

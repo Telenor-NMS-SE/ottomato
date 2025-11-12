@@ -26,16 +26,20 @@ type Manager struct {
 	distributionsMu sync.RWMutex
 	distributions   map[string]string // workload1-oiIAODWoa: worker1-oiDHawoda
 
-	distributionInterval time.Duration
-	rebalanceInterval    time.Duration
+	distributionInterval        time.Duration
+	rebalanceInterval           time.Duration
+	distributionCleanupInterval time.Duration
+	distributionMaxTime         time.Duration
 }
 
 func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
-		id:                   uuid.NewString(),
-		ctx:                  context.WithValue(ctx, "scope", "local"),
-		distributionInterval: time.Minute,
-		rebalanceInterval:    time.Minute,
+		id:                          uuid.NewString(),
+		ctx:                         context.WithValue(ctx, "scope", "local"),
+		distributionInterval:        time.Minute,
+		rebalanceInterval:           time.Minute,
+		distributionCleanupInterval: time.Minute * 5,
+		distributionMaxTime:         time.Minute * 5,
 	}
 
 	for _, opt := range opts {

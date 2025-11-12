@@ -2,7 +2,6 @@ version: "2"
 
 run:
   timeout: 3m
-  timeout: 1m
   issues-exit-code: 2
   allow-parallel-runners: true
   tests: false

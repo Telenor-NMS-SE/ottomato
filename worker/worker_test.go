@@ -65,7 +65,7 @@ func TestNewWorker(t *testing.T) {
 	}
 
 	if exp, recv := 0, len(mgr.Workloads()); exp != recv {
-		t.Errorf("expected length of managed objects to be %d, but recieved %d", exp, recv)
+		t.Errorf("expected length of workloads to be %d, but recieved %d", exp, recv)
 	}
 }
 
@@ -91,11 +91,11 @@ func TestAddWorkload(t *testing.T) {
 	}
 
 	if exp, recv := 1, len(w.Workloads()); exp != recv {
-		t.Errorf("expected length of managed objects to be %d, but recieved %d", exp, recv)
+		t.Errorf("expected length of workloads to be %d, but recieved %d", exp, recv)
 	}
 }
 
-func TestRemoveManagedObject(t *testing.T) {
+func TestDeleteWorkload(t *testing.T) {
 	w, err := New(context.Background())
 	if err != nil {
 		t.Fatalf("could not create new worker: %s", err.Error())
@@ -112,7 +112,7 @@ func TestRemoveManagedObject(t *testing.T) {
 	}
 
 	if exp, recv := 0, len(w.Workloads()); exp != recv {
-		t.Errorf("expected length of managed objects to be %d, but recieved %d", exp, recv)
+		t.Errorf("expected length of workloads to be %d, but recieved %d", exp, recv)
 	}
 }
 

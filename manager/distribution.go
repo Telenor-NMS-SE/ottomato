@@ -7,6 +7,16 @@ import (
 
 const DELTA_MAX = 5
 
+// Assign a workload to a worker, commonly used to backfill
+// when a manager is started post worker startup. Bypasses
+// distribution steps for the workload.
+func (m *Manager) Assign(w Worker, wl Workload) {
+	m.distributionsMu.Lock()
+	defer m.distributionsMu.Unlock()
+
+	m.distributions[wl.GetID()] = w.GetID()
+}
+
 func (m *Manager) cleanup() {
 	m.workloadsMu.RLock()
 	defer m.workloadsMu.RUnlock()

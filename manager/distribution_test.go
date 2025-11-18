@@ -5,6 +5,29 @@ import (
 	"time"
 )
 
+func TestAssign(t *testing.T) {
+	mgr := &Manager{
+		distributions: map[string]string{},
+	}
+	w := &MockWorker{id: "worker1"}
+	wl := &MockWorkload{id: "workload1"}
+
+	mgr.Assign(w, wl)
+
+	if len(mgr.distributions) != 1 {
+		t.Fatalf("expected manager distributions to be exactly 1, but got: %d", len(mgr.distributions))
+	}
+
+	workerId, ok := mgr.distributions[wl.GetID()]
+	if !ok {
+		t.Fatalf("expected to find workloadId '%s' in distributions, but didn't", wl.GetID())
+	}
+
+	if workerId != w.GetID() {
+		t.Errorf("expected to find workerId '%s', but got: %s", w.GetID(), workerId)
+	}
+}
+
 func TestDistributor(t *testing.T) {
 	mgr := &Manager{
 		workers: map[string]Worker{

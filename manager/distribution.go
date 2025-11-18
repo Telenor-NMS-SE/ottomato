@@ -14,7 +14,7 @@ func (m *Manager) Assign(w Worker, wl Workload) {
 	m.distributionsMu.Lock()
 	defer m.distributionsMu.Unlock()
 
-	m.distributions[w.GetID()] = wl.GetID()
+	m.distributions[wl.GetID()] = w.GetID()
 }
 
 func (m *Manager) cleanup() {

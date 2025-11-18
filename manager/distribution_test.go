@@ -7,6 +7,7 @@ import (
 
 func TestAssign(t *testing.T) {
 	mgr := &Manager{
+		workloads:     map[string]Workload{},
 		distributions: map[string]string{},
 	}
 	w := &MockWorker{id: "worker1"}
@@ -14,8 +15,16 @@ func TestAssign(t *testing.T) {
 
 	mgr.Assign(w, wl)
 
+	if len(mgr.workloads) != 1 {
+		t.Fatalf("expected manager distributions to be exactly 1, but got: %d", len(mgr.distributions))
+	}
+
 	if len(mgr.distributions) != 1 {
 		t.Fatalf("expected manager distributions to be exactly 1, but got: %d", len(mgr.distributions))
+	}
+
+	if _, ok := mgr.workloads[wl.GetID()]; !ok {
+		t.Fatalf("expected to find workload '%s', but didn't", wl.GetID())
 	}
 
 	workerId, ok := mgr.distributions[wl.GetID()]

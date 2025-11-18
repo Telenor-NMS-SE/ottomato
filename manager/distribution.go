@@ -11,10 +11,16 @@ const DELTA_MAX = 5
 // when a manager is started post worker startup. Bypasses
 // distribution steps for the workload.
 func (m *Manager) Assign(w Worker, wl Workload) {
+	m.workloadsMu.Lock()
+	defer m.workloadsMu.Unlock()
+
 	m.distributionsMu.Lock()
 	defer m.distributionsMu.Unlock()
 
+	m.workloads[wl.GetID()] = wl
+
 	m.distributions[wl.GetID()] = w.GetID()
+	wl.SetState(StateRunning)
 }
 
 func (m *Manager) cleanup() {

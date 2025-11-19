@@ -48,13 +48,20 @@ func (m *Manager) DeleteWorker(w Worker) {
 	m.distributionsMu.Lock()
 	defer m.distributionsMu.Unlock()
 
-	delete(m.workers, w.GetID())
+	m.workloadsMu.Lock()
+	defer m.workloadsMu.Unlock()
 
-	for wl, wo := range m.distributions {
-		if w.GetID() == wo {
-			delete(m.distributions, wl)
+	for workloadId, workerId := range m.distributions {
+		if w.GetID() == workerId {
+			delete(m.distributions, workloadId)
+
+			if wl, ok := m.workloads[workloadId]; ok {
+				wl.SetState(StateInit)
+			}
 		}
 	}
+
+	delete(m.workers, w.GetID())
 
 	if m.eventCh != nil {
 		m.eventCh <- NewWorkerDeletedEvent(m.id, w)

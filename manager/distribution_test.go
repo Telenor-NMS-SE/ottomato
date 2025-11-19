@@ -65,6 +65,11 @@ func TestDistributor(t *testing.T) {
 		t.Errorf("expected delta of distributed workloads to be no more than 1, got: %d", delta)
 	}
 
+	for _, wl := range mgr.workloads {
+		if exp, recv := StateRunning, wl.GetState(); exp != recv {
+			t.Errorf("expected state of '%s' to be '%s', but got: %s", wl.GetID(), exp.String(), recv.String())
+		}
+	}
 }
 
 func TestRebalancer(t *testing.T) {

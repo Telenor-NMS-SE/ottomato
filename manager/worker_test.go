@@ -85,11 +85,21 @@ func TestDeleteWorker(t *testing.T) {
 		workers: map[string]Worker{
 			"test": &MockWorker{id: "test"},
 		},
+		workloads: map[string]Workload{
+			"test": &MockWorkload{id: "test"},
+		},
+		distributions: map[string]string{
+			"test": "test",
+		},
 	}
 
 	manager.DeleteWorker(&MockWorker{id: "test"})
 	if len(manager.workers) > 0 {
 		t.Fatalf("expected worker count to be exactly 0, but got: %d", len(manager.workers))
+	}
+
+	if len(manager.distributions) > 0 {
+		t.Fatalf("expected workload to be removed from the worker in distributions, but found %d entries", len(manager.distributions))
 	}
 }
 

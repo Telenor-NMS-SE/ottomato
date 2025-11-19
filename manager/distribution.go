@@ -75,7 +75,7 @@ func (m *Manager) distributor() {
 				m.distributions[workload.GetID()] = worker.GetID()
 				m.distributionsMu.Unlock()
 
-				workload.SetState(StateDistributing)
+				workload.SetState(StateRunning)
 			}
 		}
 	}

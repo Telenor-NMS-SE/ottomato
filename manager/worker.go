@@ -24,6 +24,14 @@ func (m *Manager) Workers() []Worker {
 	return workers
 }
 
+func (m *Manager) GetWorker(id string) (Worker, bool) {
+	m.workersMu.RLock()
+	defer m.workersMu.RUnlock()
+
+	w, ok := m.workers[id]
+	return w, ok
+}
+
 func (m *Manager) AddWorker(w Worker) error {
 	m.workersMu.Lock()
 	defer m.workersMu.Unlock()

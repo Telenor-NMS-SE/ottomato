@@ -48,6 +48,27 @@ func TestAddWorkload(t *testing.T) {
 	}
 }
 
+func TestGetWorkload(t *testing.T) {
+	manager := Manager{
+		workloads: map[string]Workload{
+			"test": &MockWorkload{id: "test"},
+		},
+	}
+
+	wl, ok := manager.GetWorkload("test")
+	if !ok {
+		t.Fatalf("expected to get a workload, but didn't")
+	}
+
+	if wl == nil {
+		t.Fatalf("unexpected nil pointer when getting workload")
+	}
+
+	if wl.GetID() != "test" {
+		t.Errorf("expected to get workload 'test', but got: %s", wl.GetID())
+	}
+}
+
 func TestAddDuplicateWorkload(t *testing.T) {
 	manager := Manager{
 		workloads: map[string]Workload{

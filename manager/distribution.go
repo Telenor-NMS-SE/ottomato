@@ -97,33 +97,36 @@ func (m *Manager) rebalance() {
 			continue
 		}
 
-		workloadIds, err := worker.Unload(delta - DELTA_MAX)
-		if err != nil {
-			break
-		}
+		workloads := m.getRelatedWorkloads(worker)
+		sort.Slice(workloads, func(i, j int) bool {
+			return workloads[i].LastStateChange().Before(workloads[i].LastStateChange())
+		})
 
 		m.workloadsMu.RLock()
+		defer m.workloadsMu.RUnlock()
+
 		m.distributionsMu.Lock()
-		for _, workloadId := range workloadIds {
-			wl, ok := m.workloads[workloadId]
-			if !ok {
+		defer m.distributionsMu.Unlock()
+
+		for i := 0; i <= (delta - DELTA_MAX); i++ {
+			wl := workloads[i]
+
+			if err := worker.Unload(workloads[i]); err != nil {
 				continue
 			}
-			delete(m.distributions, workloadId)
-			wl.SetState(StateInit)
 
+			delete(m.distributions, wl.GetID())
+			wl.SetState(StateInit)
 		}
-		m.workloadsMu.RUnlock()
-		m.distributionsMu.Unlock()
 	}
 }
 
 // requires, but does not acquire an RLock on m.workersMu
-func (m *Manager) sort() (string, string, uint32) {
+func (m *Manager) sort() (string, string, int) {
 	m.distributionsMu.RLock()
 	defer m.distributionsMu.RUnlock()
 
-	counters := make(map[string]uint32, len(m.workers))
+	counters := make(map[string]int, len(m.workers))
 	for _, workerId := range m.distributions {
 		counters[workerId] += 1
 	}
@@ -136,7 +139,7 @@ func (m *Manager) sort() (string, string, uint32) {
 
 	type tmp struct {
 		Key   string
-		Value uint32
+		Value int
 	}
 
 	s := make([]tmp, 0, len(counters))
@@ -153,4 +156,25 @@ func (m *Manager) sort() (string, string, uint32) {
 	}
 
 	return "", "", 0
+}
+
+func (m *Manager) getRelatedWorkloads(w Worker) []Workload {
+	m.distributionsMu.RLock()
+	defer m.distributionsMu.RUnlock()
+
+	m.workloadsMu.RLock()
+	defer m.workloadsMu.RUnlock()
+
+	res := []Workload{}
+	for workloadId, workerId := range m.distributions {
+		if w.GetID() != workerId {
+			continue
+		}
+
+		if wl, ok := m.workloads[workloadId]; ok {
+			res = append(res, wl)
+		}
+	}
+
+	return res
 }

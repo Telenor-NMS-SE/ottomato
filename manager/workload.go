@@ -26,6 +26,14 @@ func (m *Manager) Workloads() []Workload {
 	return workloads
 }
 
+func (m *Manager) GetWorkload(id string) (Workload, bool) {
+	m.workloadsMu.RLock()
+	defer m.workloadsMu.RUnlock()
+
+	wl, ok := m.workloads[id]
+	return wl, ok
+}
+
 func (m *Manager) AddWorkload(wl Workload) error {
 	m.workloadsMu.Lock()
 	defer m.workloadsMu.Unlock()

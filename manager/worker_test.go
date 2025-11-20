@@ -41,6 +41,27 @@ func TestAddWorker(t *testing.T) {
 	}
 }
 
+func TestGetWorker(t *testing.T) {
+	manager := Manager{
+		workers: map[string]Worker{
+			"test": &MockWorker{id: "test"},
+		},
+	}
+
+	w, ok := manager.GetWorker("test")
+	if !ok {
+		t.Fatalf("expected to get a worker, but didn't")
+	}
+
+	if w == nil {
+		t.Fatalf("unexpected nil pointer when getting worker")
+	}
+
+	if w.GetID() != "test" {
+		t.Errorf("expected to get worker 'test', but got: %s", w.GetID())
+	}
+}
+
 func TestAddDuplicateWorker(t *testing.T) {
 	manager := Manager{
 		workers: map[string]Worker{

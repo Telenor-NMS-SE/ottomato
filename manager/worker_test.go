@@ -2,7 +2,6 @@ package manager
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 )
 
@@ -15,28 +14,8 @@ func (w *MockWorker) GetID() string {
 	return w.id
 }
 
-func (w *MockWorker) Unload(amount uint32) ([]string, error) {
-	unloaded := make([]string, 0, amount)
-
-	if w.mgr == nil {
-		for i := range amount {
-			unloaded = append(unloaded, fmt.Sprintf("workload-%d", i))
-		}
-
-		return unloaded, nil
-	}
-
-	for workloadId, workerId := range w.mgr.distributions {
-		if uint32(len(unloaded)) >= amount {
-			break
-		}
-
-		if workerId == w.id {
-			unloaded = append(unloaded, workloadId)
-		}
-	}
-
-	return unloaded, nil
+func (w *MockWorker) Unload(wl Workload) error {
+	return nil
 }
 
 func (w *MockWorker) Load(wl Workload) error {

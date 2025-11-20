@@ -6,7 +6,7 @@ import (
 
 type Worker interface {
 	GetID() string
-	Unload(uint32) ([]string, error)
+	Unload(Workload) error
 	Load(Workload) error
 }
 

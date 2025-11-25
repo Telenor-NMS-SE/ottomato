@@ -12,6 +12,26 @@ type Worker interface {
 
 var ErrWorkerExists = errors.New("worker already exists")
 
+func (m *Manager) FindWorkerFor(wl Workload) (Worker, bool) {
+	m.distributionsMu.Lock()
+	defer m.distributionsMu.Unlock()
+
+	workerId, ok := m.distributions[wl.GetID()]
+	if !ok {
+		return nil, false
+	}
+
+	m.workersMu.RLock()
+	defer m.workersMu.RUnlock()
+
+	w, ok := m.workers[workerId]
+	if !ok {
+		return nil, false
+	}
+
+	return w, true
+}
+
 func (m *Manager) Workers() []Worker {
 	m.workersMu.RLock()
 	defer m.workersMu.RUnlock()

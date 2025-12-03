@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -17,19 +16,33 @@ type Manager struct {
 	eventCbs []func(context.Context, *Event)
 	eventCh  chan (*Event)
 
-	workersMu sync.RWMutex
-	workers   map[string]Worker
-
-	workloadsMu sync.RWMutex
-	workloads   map[string]Workload
-
-	distributionsMu sync.RWMutex
-	distributions   map[string]string
+	state    StateStorage
 
 	distributionInterval time.Duration
 	rebalanceInterval    time.Duration
 	cleanupInterval      time.Duration
 	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
+}
+
+type StateStorage interface {
+	Lock()
+	Unlock()
+
+	GetAllWorkers() []Worker
+	GetWorker(string) (Worker, bool)
+	AddWorker(Worker)
+	DeleteWorker(Worker)
+
+	GetAllWorkloads() []Workload
+	GetWorkload(string) (Workload, bool)
+	AddWorkload(Workload)
+	UpdateWorkload(Workload)
+	DeleteWorkload(Workload)
+
+	GetAssociation(Workload) (Worker, bool)
+	GetAssociations(Worker) []Workload
+	Associate(Workload, Worker)
+	Disassociate(Workload, Worker)
 }
 
 type ctxScope string
@@ -40,10 +53,6 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 	mgr := &Manager{
 		id:  uuid.NewString(),
 		ctx: context.WithValue(ctx, ctxScopeKey, "local"),
-
-		workers:       map[string]Worker{},
-		workloads:     map[string]Workload{},
-		distributions: map[string]string{},
 
 		distributionInterval: time.Minute,
 		rebalanceInterval:    time.Minute,

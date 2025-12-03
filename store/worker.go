@@ -6,20 +6,20 @@ import (
 	"sync"
 )
 
-type Store struct {
+type WorkerStore struct {
 	mu sync.RWMutex
 	kv map[string]struct{}
 }
 
-func New() *Store {
-	return &Store{
+func New() *WorkerStore {
+	return &WorkerStore{
 		kv: map[string]struct{}{},
 	}
 }
 
-func (s *Store) RegisterWorker(workerId string) {}
+func (s *WorkerStore) RegisterWorker(workerId string) {}
 
-func (s *Store) RegisterWorkload(workloadName string, workerId string) {
+func (s *WorkerStore) RegisterWorkload(workloadName string, workerId string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -32,7 +32,7 @@ func (s *Store) RegisterWorkload(workloadName string, workerId string) {
 	s.kv[key] = struct{}{}
 }
 
-func (s *Store) DeleteWorkload(workloadName string, workerId string) {
+func (s *WorkerStore) DeleteWorkload(workloadName string, workerId string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -41,4 +41,4 @@ func (s *Store) DeleteWorkload(workloadName string, workerId string) {
 
 }
 
-func (s *Store) UpdateWorkload(workloadName string, workerId string) {}
+func (s *WorkerStore) UpdateWorkload(workloadName string, workerId string) {}

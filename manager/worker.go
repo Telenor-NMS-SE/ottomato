@@ -12,86 +12,66 @@ type Worker interface {
 
 var ErrWorkerExists = errors.New("worker already exists")
 
-func (m *Manager) FindWorkerFor(wl Workload) (Worker, bool) {
-	m.distributionsMu.Lock()
-	defer m.distributionsMu.Unlock()
+func (m *Manager) GetAssociation(wl Workload) (Worker, bool) {
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	workerId, ok := m.distributions[wl.GetID()]
-	if !ok {
-		return nil, false
-	}
-
-	m.workersMu.RLock()
-	defer m.workersMu.RUnlock()
-
-	w, ok := m.workers[workerId]
-	if !ok {
-		return nil, false
-	}
-
-	return w, true
+	return m.state.GetAssociation(wl)
 }
 
-func (m *Manager) Workers() []Worker {
-	m.workersMu.RLock()
-	defer m.workersMu.RUnlock()
-
-	workers := make([]Worker, 0, len(m.workers))
-	for _, w := range m.workers {
-		workers = append(workers, w)
-	}
-
-	return workers
-}
-
-func (m *Manager) GetWorker(id string) (Worker, bool) {
-	m.workersMu.RLock()
-	defer m.workersMu.RUnlock()
-
-	w, ok := m.workers[id]
-	return w, ok
-}
-
-func (m *Manager) AddWorker(w Worker) error {
-	m.workersMu.Lock()
-	defer m.workersMu.Unlock()
-
-	if _, ok := m.workers[w.GetID()]; ok {
-		return ErrWorkerExists
-	}
-
-	m.workers[w.GetID()] = w
-
-	if m.eventCh != nil {
-		m.eventCh <- NewWorkerAddedEvent(m.id, w)
-	}
+func (m *Manager) GetAssosiactions(w Worker) []Workload {
+	m.state.Lock()
+	defer m.state.Unlock()
 
 	return nil
 }
 
+func (m *Manager) Associate(wl Workload, w Worker) {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	m.state.Associate(wl, w)
+}
+
+func (m *Manager) Workers() []Worker {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	return m.state.GetAllWorkers()
+}
+
+func (m *Manager) GetWorker(id string) (Worker, bool) {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	return m.state.GetWorker(id)
+}
+
+func (m *Manager) AddWorker(w Worker) {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	m.state.AddWorker(w)
+
+	if m.eventCh != nil {
+		m.eventCh <- NewWorkerAddedEvent(m.id, w)
+	}
+}
+
 func (m *Manager) DeleteWorker(w Worker) {
-	m.workersMu.Lock()
-	defer m.workersMu.Unlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	m.distributionsMu.Lock()
-	defer m.distributionsMu.Unlock()
-
-	m.workloadsMu.Lock()
-	defer m.workloadsMu.Unlock()
-
-	for workloadId, workerId := range m.distributions {
-		if w.GetID() == workerId {
-			delete(m.distributions, workloadId)
-
-			if wl, ok := m.workloads[workloadId]; ok {
-				wl.SetState(StateInit)
-			}
-		}
+	for _, wl := range m.state.GetAssociations(w) {
+		m.state.Disassociate(wl, w)
+		wl.SetStatus(StatusInit)
+		m.state.UpdateWorkload(wl)
 	}
 
-	delete(m.workers, w.GetID())
+	m.state.DeleteWorker(w)
 
 	if m.eventCh != nil {
 		m.eventCh <- NewWorkerDeletedEvent(m.id, w)
 	}
 }
+

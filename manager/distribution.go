@@ -11,36 +11,35 @@ const DELTA_MAX = 5
 // when a manager is started post worker startup. Bypasses
 // distribution steps for the workload.
 func (m *Manager) Assign(w Worker, wl Workload) {
-	m.workloadsMu.Lock()
-	defer m.workloadsMu.Unlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	m.distributionsMu.Lock()
-	defer m.distributionsMu.Unlock()
+	wl.SetStatus(StatusRunning)
 
-	m.workloads[wl.GetID()] = wl
-
-	m.distributions[wl.GetID()] = w.GetID()
-	wl.SetState(StateRunning)
+	m.state.AddWorkload(wl)
+	m.state.Associate(wl, w)
 }
 
 func (m *Manager) cleanup() {
-	m.workloadsMu.RLock()
-	defer m.workloadsMu.RUnlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	for _, wl := range m.workloads {
-
-		if time.Since(wl.LastStateChange()) < m.cleanupMaxTime {
+	for _, wl := range m.state.GetAllWorkloads() {
+		if time.Since(wl.LastStatusChange()) < m.cleanupMaxTime {
 			continue
 		}
 
-		switch wl.GetState() {
-		case StateDistributing:
-			wl.SetState(StateErr)
-			m.distributionsMu.Lock()
-			delete(m.distributions, wl.GetID())
-			m.distributionsMu.Unlock()
-		case StateErr:
-			wl.SetState(StateInit)
+		switch wl.GetStatus() {
+		case StatusDistributing:
+			wl.SetStatus(StatusErr)
+			m.state.UpdateWorkload(wl)
+
+			if w, ok := m.state.GetAssociation(wl); ok {
+				m.state.Disassociate(wl, w)
+			}
+		case StatusErr:
+			wl.SetStatus(StatusInit)
+			m.state.UpdateWorkload(wl)
 		default:
 			continue
 		}
@@ -49,94 +48,81 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
-	m.workloadsMu.RLock()
-	defer m.workloadsMu.RUnlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	m.workersMu.RLock()
-	defer m.workersMu.RUnlock()
-
-	for _, workload := range m.workloads {
-		if workload.GetState() != StateInit {
+	for _, wl := range m.state.GetAllWorkloads() {
+		if wl.GetStatus() != StatusInit {
 			continue
 		}
 
-		lo, _, _ := m.sort()
-		if worker, ok := m.workers[lo]; ok {
-			if err := worker.Load(workload); err != nil {
+		counters := map[string]int{}
+		for _, w := range m.state.GetAllWorkers() {
+			counters[w.GetID()] = len(m.state.GetAssociations(w))
+		}
+
+		lo, _, _ := m.sort(counters)
+		if w, ok := m.state.GetWorker(lo); ok {
+			if err := w.Load(wl); err != nil {
 				if m.eventCh != nil {
-					m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, worker.GetID(), workload)
+					m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, w.GetID(), wl)
 				}
 			} else {
 				if m.eventCh != nil {
-					m.eventCh <- NewWorkloadDistributedEvent(m.id, worker.GetID(), workload)
+					m.eventCh <- NewWorkloadDistributedEvent(m.id, w.GetID(), wl)
 				}
 
-				m.distributionsMu.Lock()
-				m.distributions[workload.GetID()] = worker.GetID()
-				m.distributionsMu.Unlock()
+				m.state.Associate(wl, w)
 
-				workload.SetState(StateRunning)
+				wl.SetStatus(StatusRunning)
+				m.state.UpdateWorkload(wl)
 			}
 		}
 	}
 }
 
 func (m *Manager) rebalance() {
-	m.workersMu.RLock()
-	defer m.workersMu.RUnlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
 	for {
+		counters := map[string]int{}
+		for _, w := range m.state.GetAllWorkers() {
+			counters[w.GetID()] = len(m.state.GetAssociations(w))
+		}
 
-		_, hi, delta := m.sort()
+		_, hi, delta := m.sort(counters)
 		if delta <= DELTA_MAX {
 			break
 		}
 
-		worker, ok := m.workers[hi]
+		w, ok := m.state.GetWorker(hi)
 		if !ok {
 			continue
 		}
 
-		workloads := m.getRelatedWorkloads(worker)
-		sort.Slice(workloads, func(i, j int) bool {
-			return workloads[i].LastStateChange().Before(workloads[i].LastStateChange())
+		wls := m.state.GetAssociations(w)
+		sort.Slice(wls, func(i, j int) bool {
+			return wls[i].LastStatusChange().Before(wls[i].LastStatusChange())
 		})
 
-		m.workloadsMu.RLock()
-		defer m.workloadsMu.RUnlock()
-
-		m.distributionsMu.Lock()
-		defer m.distributionsMu.Unlock()
-
 		for i := 0; i <= (delta - DELTA_MAX); i++ {
-			wl := workloads[i]
+			wl := wls[i]
 
-			if err := worker.Unload(workloads[i]); err != nil {
+			if err := w.Unload(wl); err != nil {
 				continue
 			}
 
-			delete(m.distributions, wl.GetID())
-			wl.SetState(StateInit)
+			m.state.Disassociate(wl, w)
+
+			wl.SetStatus(StatusInit)
+			m.state.UpdateWorkload(wl)
 		}
 	}
 }
 
 // requires, but does not acquire an RLock on m.workersMu
-func (m *Manager) sort() (string, string, int) {
-	m.distributionsMu.RLock()
-	defer m.distributionsMu.RUnlock()
-
-	counters := make(map[string]int, len(m.workers))
-	for _, workerId := range m.distributions {
-		counters[workerId] += 1
-	}
-
-	for workerId := range m.workers {
-		if _, ok := counters[workerId]; !ok {
-			counters[workerId] = 0
-		}
-	}
-
+func (m *Manager) sort(counters map[string]int) (string, string, int) {
 	type tmp struct {
 		Key   string
 		Value int
@@ -158,23 +144,3 @@ func (m *Manager) sort() (string, string, int) {
 	return "", "", 0
 }
 
-func (m *Manager) getRelatedWorkloads(w Worker) []Workload {
-	m.distributionsMu.RLock()
-	defer m.distributionsMu.RUnlock()
-
-	m.workloadsMu.RLock()
-	defer m.workloadsMu.RUnlock()
-
-	res := []Workload{}
-	for workloadId, workerId := range m.distributions {
-		if w.GetID() != workerId {
-			continue
-		}
-
-		if wl, ok := m.workloads[workloadId]; ok {
-			res = append(res, wl)
-		}
-	}
-
-	return res
-}

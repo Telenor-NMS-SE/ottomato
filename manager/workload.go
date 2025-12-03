@@ -7,59 +7,48 @@ import (
 
 type Workload interface {
 	GetID() string
-	GetState() State
-	SetState(State)
-	LastStateChange() time.Time
+	GetStatus() Status
+	SetStatus(Status)
+	LastStatusChange() time.Time
 }
 
 var ErrWorkloadExists = errors.New("workload already exists")
 
 func (m *Manager) Workloads() []Workload {
-	m.workloadsMu.RLock()
-	defer m.workloadsMu.RUnlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	workloads := make([]Workload, 0, len(m.workloads))
-	for _, wl := range m.workloads {
-		workloads = append(workloads, wl)
-	}
-
-	return workloads
+	return m.state.GetAllWorkloads()
 }
 
 func (m *Manager) GetWorkload(id string) (Workload, bool) {
-	m.workloadsMu.RLock()
-	defer m.workloadsMu.RUnlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	wl, ok := m.workloads[id]
-	return wl, ok
+	return m.state.GetWorkload(id)
 }
 
-func (m *Manager) AddWorkload(wl Workload) error {
-	m.workloadsMu.Lock()
-	defer m.workloadsMu.Unlock()
+func (m *Manager) AddWorkload(wl Workload) {
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	if _, ok := m.workloads[wl.GetID()]; ok {
-		return ErrWorkloadExists
-	}
-
-	m.workloads[wl.GetID()] = wl
+	m.state.AddWorkload(wl)
 
 	if m.eventCh != nil {
 		m.eventCh <- NewWorkloadAddedEvent(m.id, wl)
 	}
-
-	return nil
 }
 
 func (m *Manager) DeleteWorkload(wl Workload) {
-	m.workloadsMu.Lock()
-	defer m.workloadsMu.Unlock()
+	m.state.Lock()
+	defer m.state.Unlock()
 
-	m.distributionsMu.Lock()
-	defer m.distributionsMu.Unlock()
+	if w, ok := m.state.GetAssociation(wl); ok {
+		m.state.Disassociate(wl, w)
 
-	delete(m.workloads, wl.GetID())
-	delete(m.distributions, wl.GetID())
+	}
+
+	m.state.DeleteWorkload(wl)
 
 	if m.eventCh != nil {
 		m.eventCh <- NewWorkloadDeletedEvent(m.id, wl)

@@ -143,4 +143,3 @@ func (m *Manager) sort(counters map[string]int) (string, string, int) {
 
 	return "", "", 0
 }
-

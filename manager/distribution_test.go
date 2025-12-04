@@ -142,13 +142,13 @@ func TestDistributionCleanup(t *testing.T) {
 		},
 		workloads: map[string]Workload{
 			"workload-0": &MockWorkload{
-				id: "workload-0",
-				status: StatusDistributing,
+				id:           "workload-0",
+				status:       StatusDistributing,
 				statusChange: time.Now().Add(-time.Hour),
 			},
 			"workload-1": &MockWorkload{
-				id: "workload-1",
-				status: StatusErr,
+				id:           "workload-1",
+				status:       StatusErr,
 				statusChange: time.Now().Add(-time.Hour),
 			},
 		},

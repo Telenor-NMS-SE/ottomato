@@ -6,7 +6,7 @@ import (
 )
 
 type MockWorkload struct {
-	id          string
+	id           string
 	status       Status
 	statusChange time.Time
 }

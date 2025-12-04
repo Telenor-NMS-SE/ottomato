@@ -5,9 +5,9 @@ import "testing"
 func TestStateGetAllWorkers(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id:"worker0"},
-			"worker1": &MockWorker{id:"worker1"},
-			"worker2": &MockWorker{id:"worker2"},
+			"worker0": &MockWorker{id: "worker0"},
+			"worker1": &MockWorker{id: "worker1"},
+			"worker2": &MockWorker{id: "worker2"},
 		},
 	}
 
@@ -34,7 +34,7 @@ func TestStateGetAllWorkers(t *testing.T) {
 			t.Errorf("worker '%s' has already been accounted for", w.GetID())
 			continue
 		}
-		
+
 		found[w.GetID()] = true
 	}
 }
@@ -42,9 +42,9 @@ func TestStateGetAllWorkers(t *testing.T) {
 func TestStateGetWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id:"worker0"},
-			"worker1": &MockWorker{id:"worker1"},
-			"worker2": &MockWorker{id:"worker2"},
+			"worker0": &MockWorker{id: "worker0"},
+			"worker1": &MockWorker{id: "worker1"},
+			"worker2": &MockWorker{id: "worker2"},
 		},
 	}
 
@@ -63,7 +63,7 @@ func TestStateAddWorker(t *testing.T) {
 		workers: map[string]Worker{},
 	}
 
-	state.AddWorker(&MockWorker{id:"worker0"})
+	state.AddWorker(&MockWorker{id: "worker0"})
 
 	if exp, recv := 1, len(state.workers); exp != recv {
 		t.Fatalf("expected to see %d worker(s), but found: %d", exp, recv)
@@ -82,13 +82,13 @@ func TestStateAddWorker(t *testing.T) {
 func TestStateDeleteWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id:"worker0"},
-			"worker1": &MockWorker{id:"worker1"},
-			"worker2": &MockWorker{id:"worker2"},
+			"worker0": &MockWorker{id: "worker0"},
+			"worker1": &MockWorker{id: "worker1"},
+			"worker2": &MockWorker{id: "worker2"},
 		},
 	}
 
-	state.DeleteWorker(&MockWorker{id:"worker0"})
+	state.DeleteWorker(&MockWorker{id: "worker0"})
 
 	if exp, recv := 2, len(state.workers); exp != recv {
 		t.Fatalf("expected to see %d worker(s), but got: %d", exp, recv)
@@ -102,9 +102,9 @@ func TestStateDeleteWorker(t *testing.T) {
 func TestStateGetAllWorkloads(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id:"workload0"},
-			"workload1": &MockWorkload{id:"workload1"},
-			"workload2": &MockWorkload{id:"workload2"},
+			"workload0": &MockWorkload{id: "workload0"},
+			"workload1": &MockWorkload{id: "workload1"},
+			"workload2": &MockWorkload{id: "workload2"},
 		},
 	}
 
@@ -131,7 +131,7 @@ func TestStateGetAllWorkloads(t *testing.T) {
 			t.Errorf("workload '%s' has already been accounted for", wl.GetID())
 			continue
 		}
-		
+
 		found[wl.GetID()] = true
 	}
 }
@@ -139,9 +139,9 @@ func TestStateGetAllWorkloads(t *testing.T) {
 func TestStateGetWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id:"workload0"},
-			"workload1": &MockWorkload{id:"workload1"},
-			"workload2": &MockWorkload{id:"workload2"},
+			"workload0": &MockWorkload{id: "workload0"},
+			"workload1": &MockWorkload{id: "workload1"},
+			"workload2": &MockWorkload{id: "workload2"},
 		},
 	}
 
@@ -160,7 +160,7 @@ func TestStateAddWorkload(t *testing.T) {
 		workloads: map[string]Workload{},
 	}
 
-	state.AddWorkload(&MockWorkload{id:"workload0"})
+	state.AddWorkload(&MockWorkload{id: "workload0"})
 
 	if exp, recv := 1, len(state.workloads); exp != recv {
 		t.Fatalf("expected to see %d workload(s), but found: %d", exp, recv)
@@ -178,7 +178,7 @@ func TestStateAddWorkload(t *testing.T) {
 
 func TestStateUpdateWorkload(t *testing.T) {
 	wl := &MockWorkload{
-		id:"workload0",
+		id:     "workload0",
 		status: StatusErr,
 	}
 
@@ -203,13 +203,13 @@ func TestStateUpdateWorkload(t *testing.T) {
 func TestStateDeleteWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id:"workload0"},
-			"workload1": &MockWorkload{id:"workload1"},
-			"workload2": &MockWorkload{id:"workload2"},
+			"workload0": &MockWorkload{id: "workload0"},
+			"workload1": &MockWorkload{id: "workload1"},
+			"workload2": &MockWorkload{id: "workload2"},
 		},
 	}
 
-	state.DeleteWorkload(&MockWorkload{id:"workload0"})
+	state.DeleteWorkload(&MockWorkload{id: "workload0"})
 
 	if exp, recv := 2, len(state.workloads); exp != recv {
 		t.Fatalf("expected to see %d workload(s), but got: %d", exp, recv)

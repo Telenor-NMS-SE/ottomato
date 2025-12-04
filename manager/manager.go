@@ -16,7 +16,7 @@ type Manager struct {
 	eventCbs []func(context.Context, *Event)
 	eventCh  chan (*Event)
 
-	state    StateStorage
+	state StateStorage
 
 	distributionInterval time.Duration
 	rebalanceInterval    time.Duration

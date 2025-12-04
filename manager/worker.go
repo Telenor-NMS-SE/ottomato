@@ -74,4 +74,3 @@ func (m *Manager) DeleteWorker(w Worker) {
 		m.eventCh <- NewWorkerDeletedEvent(m.id, w)
 	}
 }
-

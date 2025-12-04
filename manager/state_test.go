@@ -219,3 +219,109 @@ func TestStateDeleteWorkload(t *testing.T) {
 		t.Fatalf("expected 'workload0' to be removed from state, but it isn't")
 	}
 }
+
+func TestGetAssociations(t *testing.T) {
+	w := &MockWorker{id: "worker0"}
+	wl := &MockWorkload{id: "workload0"}
+
+	state := &MemoryStore{
+		workers: map[string]Worker{
+			w.GetID(): w,
+		},
+		workloads: map[string]Workload{
+			"workload0": wl,
+		},
+		associations: map[string]string{
+			"workload0": "worker0",
+		},
+	}
+
+	assocs := state.GetAssociations(w)
+
+	if exp, recv := 1, len(assocs); exp != recv {
+		t.Fatalf("expected to get %d association(s), but got: %d", exp, recv)
+	}
+
+	if exp, recv := wl.GetID(), assocs[0].GetID(); exp != recv {
+		t.Fatalf("expected to see '%s' as the first association, but got: %s", exp, recv)
+	}
+}
+
+func TestGetAssociation(t *testing.T) {
+	w := &MockWorker{id: "worker0"}
+	wl := &MockWorkload{id: "workload0"}
+
+	state := &MemoryStore{
+		workers: map[string]Worker{
+			w.GetID(): w,
+		},
+		workloads: map[string]Workload{
+			"workload0": wl,
+		},
+		associations: map[string]string{
+			"workload0": "worker0",
+		},
+	}
+
+	assoc, ok := state.GetAssociation(wl)
+	if !ok {
+		t.Fatalf("expected to receive an association, but didn't")
+	}
+
+	if exp, recv := w.GetID(), assoc.GetID(); exp != recv {
+		t.Fatalf("expected to get an association to '%s', but got: %s", exp, recv)
+	}
+}
+
+func TestAssociate(t *testing.T) {
+	w := &MockWorker{id: "worker0"}
+	wl := &MockWorkload{id: "workload0"}
+
+	state := &MemoryStore{
+		workers: map[string]Worker{
+			w.GetID(): w,
+		},
+		workloads: map[string]Workload{
+			"workload0": wl,
+		},
+		associations: map[string]string{},
+	}
+
+	state.Associate(wl, w)
+
+	if exp, recv := 1, len(state.associations); exp != recv {
+		t.Fatalf("expected to see %d association(s), but got: %d", exp, recv)
+	}
+
+	workerId, ok := state.associations[wl.GetID()]
+	if !ok {
+		t.Fatalf("expected to find association for '%s', but didn't", wl.GetID())
+	}
+
+	if exp, recv := w.GetID(), workerId; exp != recv {
+		t.Fatalf("expected to find an association towards '%s', but got: %s", exp, recv)
+	}
+}
+
+func TestDisassociate(t *testing.T) {
+	w := &MockWorker{id: "worker0"}
+	wl := &MockWorkload{id: "workload0"}
+
+	state := &MemoryStore{
+		workers: map[string]Worker{
+			w.GetID(): w,
+		},
+		workloads: map[string]Workload{
+			"workload0": wl,
+		},
+		associations: map[string]string{
+			wl.GetID(): w.GetID(),
+		},
+	}
+
+	state.Disassociate(wl, w)
+
+	if exp, recv := 0, len(state.associations); exp != recv {
+		t.Fatalf("expected to find %d association(s), but got: %d", exp, recv)
+	}
+}

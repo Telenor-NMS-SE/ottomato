@@ -16,6 +16,17 @@ func TestWithManagerID(t *testing.T) {
 	}
 }
 
+func TestWithSignaller(t *testing.T) {
+	mgr := &Manager{}
+	signaller := &SlogSignaller{}
+
+	WithSignaller(signaller)(mgr)
+
+	if mgr.signal == nil {
+		t.Fatalf("expected signaller to be a non-nil value")
+	}
+}
+
 func TestWithDistributionInterval(t *testing.T) {
 	mgr := &Manager{}
 	WithDistributorInterval(time.Hour)(mgr)

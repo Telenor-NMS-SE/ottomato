@@ -13,6 +13,12 @@ func WithManagerID(id string) Option {
 	}
 }
 
+func WithSignaller(signaller Signals) Option {
+	return func(m *Manager) {
+		m.signal = signaller
+	}
+}
+
 func WithDistributorInterval(t time.Duration) Option {
 	return func(m *Manager) {
 		m.distributionInterval = t

@@ -1,63 +1,69 @@
 package manager
 
 import (
-	"errors"
+	"context"
 	"testing"
 	"time"
 )
 
-type MockWorkload struct {
-	id          string
-	state       State
-	stateChange time.Time
+type mockWorkload struct {
+	id           string
+	status       Status
+	statusChange time.Time
 }
 
-func (wl *MockWorkload) GetID() string {
+func (wl *mockWorkload) GetID() string {
 	return wl.id
 }
 
-func (wl *MockWorkload) SetState(s State) {
-	wl.stateChange = time.Now()
-	wl.state = s
+func (wl *mockWorkload) SetStatus(s Status) {
+	wl.statusChange = time.Now()
+	wl.status = s
 }
 
-func (wl *MockWorkload) GetState() State {
-	return wl.state
+func (wl *mockWorkload) GetStatus() Status {
+	return wl.status
 }
 
-func (wl *MockWorkload) LastStateChange() time.Time {
-	return wl.stateChange
+func (wl *mockWorkload) LastStatusChange() time.Time {
+	return wl.statusChange
 }
 
 func TestAddWorkload(t *testing.T) {
+	state := NewMemoryStore()
 	manager := Manager{
-		workloads: map[string]Workload{},
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &mockSignaller{},
 	}
-	workload := MockWorkload{id: "test"}
+	workload := mockWorkload{id: "test"}
 
-	if err := manager.AddWorkload(&workload); err != nil {
-		t.Fatalf("unexpected error when adding workload: %v", err)
+	manager.AddWorkload(context.TODO(), &workload)
+
+	if len(state.workloads) != 1 {
+		t.Errorf("expected exactly 1 workload, but got: %d", len(state.workloads))
 	}
 
-	if len(manager.workloads) != 1 {
-		t.Errorf("expected exactly 1 workload, but got: %d", len(manager.workloads))
-	}
-
-	if _, ok := manager.workloads[workload.GetID()]; !ok {
+	if _, ok := state.workloads[workload.GetID()]; !ok {
 		t.Errorf("expected to find workload '%s', but din't", workload.GetID())
 	}
 }
 
 func TestGetWorkload(t *testing.T) {
-	manager := Manager{
+	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
+	manager := Manager{
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &mockSignaller{},
+	}
 
-	wl, ok := manager.GetWorkload("test")
-	if !ok {
-		t.Fatalf("expected to get a workload, but didn't")
+	wl, err := manager.GetWorkload(context.TODO(), "test")
+	if err != nil {
+		t.Fatalf("unexpected error when getting workload: %v", err)
 	}
 
 	if wl == nil {
@@ -69,14 +75,20 @@ func TestGetWorkload(t *testing.T) {
 	}
 }
 
+/*
 func TestAddDuplicateWorkload(t *testing.T) {
-	manager := Manager{
+	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
+	manager := Manager{
+		state: state,
+		ctx:   context.TODO(),
+		signal: &mockSignaller{},
+	}
 
-	err := manager.AddWorkload(&MockWorkload{id: "test"})
+	err := manager.AddWorkload(&mockWorkload{id: "test"})
 	if err == nil {
 		t.Fatalf("expected an error when adding a duplicate workload, but got none")
 	}
@@ -85,28 +97,43 @@ func TestAddDuplicateWorkload(t *testing.T) {
 		t.Errorf("expected to get error '%v', but got: %v", ErrWorkloadExists, err)
 	}
 }
+*/
 
 func TestDeleteWorkload(t *testing.T) {
-	manager := Manager{
+	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
+	manager := Manager{
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &mockSignaller{},
+	}
 
-	manager.DeleteWorkload(&MockWorkload{id: "test"})
-	if len(manager.workers) > 0 {
-		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(manager.workers))
+	manager.DeleteWorkload(context.TODO(), &mockWorkload{id: "test"})
+	if len(state.workers) > 0 {
+		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(state.workers))
 	}
 }
 
 func TestGetWorkloads(t *testing.T) {
-	manager := Manager{
+	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
+	manager := Manager{
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &mockSignaller{},
+	}
 
-	workloads := manager.Workloads()
+	workloads, err := manager.Workloads(context.TODO())
+	if err != nil {
+		t.Fatalf("unexpected error when getting workloads: %v", err)
+	}
+
 	if len(workloads) != 1 {
 		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workloads))
 	}

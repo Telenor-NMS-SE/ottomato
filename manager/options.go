@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"context"
 	"time"
 )
 
@@ -14,10 +13,15 @@ func WithManagerID(id string) Option {
 	}
 }
 
-// Add an event callback
-func WithEventCallback(cb func(context.Context, *Event)) Option {
+func WithSignaller(signaller Signals) Option {
 	return func(m *Manager) {
-		m.eventCbs = append(m.eventCbs, cb)
+		m.signal = signaller
+	}
+}
+
+func WithStateStorage(state StateStorage) Option {
+	return func(m *Manager) {
+		m.state = state
 	}
 }
 

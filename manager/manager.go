@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -14,22 +13,39 @@ type Manager struct {
 	ctx       context.Context
 	scheduler gocron.Scheduler
 
-	eventCbs []func(context.Context, *Event)
-	eventCh  chan (*Event)
-
-	workersMu sync.RWMutex
-	workers   map[string]Worker
-
-	workloadsMu sync.RWMutex
-	workloads   map[string]Workload
-
-	distributionsMu sync.RWMutex
-	distributions   map[string]string
+	signal Signals
+	state  StateStorage
 
 	distributionInterval time.Duration
 	rebalanceInterval    time.Duration
 	cleanupInterval      time.Duration
 	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
+}
+
+type Signals interface {
+	Event(Event)
+	Error(error)
+}
+
+type StateStorage interface {
+	Lock()
+	Unlock()
+
+	GetAllWorkers(context.Context) ([]Worker, error)
+	GetWorker(context.Context, string) (Worker, error)
+	AddWorker(context.Context, Worker) error
+	DeleteWorker(context.Context, Worker) error
+
+	GetAllWorkloads(context.Context) ([]Workload, error)
+	GetWorkload(context.Context, string) (Workload, error)
+	AddWorkload(context.Context, Workload) error
+	UpdateWorkload(context.Context, Workload) error
+	DeleteWorkload(context.Context, Workload) error
+
+	GetAssociation(context.Context, Workload) (Worker, error)
+	GetAssociations(context.Context, Worker) ([]Workload, error)
+	Associate(context.Context, Workload, Worker) error
+	Disassociate(context.Context, Workload, Worker) error
 }
 
 type ctxScope string
@@ -41,10 +57,6 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		id:  uuid.NewString(),
 		ctx: context.WithValue(ctx, ctxScopeKey, "local"),
 
-		workers:       map[string]Worker{},
-		workloads:     map[string]Workload{},
-		distributions: map[string]string{},
-
 		distributionInterval: time.Minute,
 		rebalanceInterval:    time.Minute,
 		cleanupInterval:      time.Minute * 5,
@@ -53,6 +65,14 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 
 	for _, opt := range opts {
 		opt(mgr)
+	}
+
+	if mgr.signal == nil {
+		mgr.signal = NewSlogSignaller(nil)
+	}
+
+	if mgr.state == nil {
+		mgr.state = NewMemoryStore()
 	}
 
 	var err error
@@ -92,25 +112,10 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 
 	mgr.scheduler.Start()
 
-	go mgr.eventLoop()
-
 	return mgr, nil
 }
 
 func (m *Manager) Stop() error {
 	m.ctx.Done()
 	return m.scheduler.Shutdown()
-}
-
-func (m *Manager) eventLoop() {
-	for {
-		select {
-		case e := <-m.eventCh:
-			for _, cb := range m.eventCbs {
-				go cb(m.ctx, e)
-			}
-		case <-m.ctx.Done():
-			return
-		}
-	}
 }

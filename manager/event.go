@@ -78,40 +78,40 @@ func (e *EventType) UnmarshalJSON(val []byte) error {
 	return nil
 }
 
-func NewWorkerAddedEvent(managerId string, worker Worker) *Event {
-	return &Event{
+func NewWorkerAddedEvent(managerId string, worker Worker) Event {
+	return Event{
 		Type:       EventWorkerAdded,
 		ManagerID:  managerId,
 		ResourceID: worker.GetID(),
 	}
 }
 
-func NewWorkerDeletedEvent(managerId string, worker Worker) *Event {
-	return &Event{
+func NewWorkerDeletedEvent(managerId string, worker Worker) Event {
+	return Event{
 		Type:       EventWorkerDeleted,
 		ManagerID:  managerId,
 		ResourceID: worker.GetID(),
 	}
 }
 
-func NewWorkloadAddedEvent(managerId string, workload Workload) *Event {
-	return &Event{
+func NewWorkloadAddedEvent(managerId string, workload Workload) Event {
+	return Event{
 		Type:       EventWorkloadAdded,
 		ManagerID:  managerId,
 		ResourceID: workload.GetID(),
 	}
 }
 
-func NewWorkloadDeletedEvent(managerId string, workload Workload) *Event {
-	return &Event{
+func NewWorkloadDeletedEvent(managerId string, workload Workload) Event {
+	return Event{
 		Type:       EventWorkloadDeleted,
 		ManagerID:  managerId,
 		ResourceID: workload.GetID(),
 	}
 }
 
-func NewWorkloadDistributedEvent(managerId, workerId string, workload Workload) *Event {
-	return &Event{
+func NewWorkloadDistributedEvent(managerId, workerId string, workload Workload) Event {
+	return Event{
 		Type:       EventWorkloadDistributed,
 		ManagerID:  managerId,
 		WorkerID:   workerId,
@@ -119,8 +119,8 @@ func NewWorkloadDistributedEvent(managerId, workerId string, workload Workload) 
 	}
 }
 
-func NewWorkloadDistributedErrorEvent(managerId, workerId string, workload Workload) *Event {
-	return &Event{
+func NewWorkloadDistributedErrorEvent(managerId, workerId string, workload Workload) Event {
+	return Event{
 		Type:       EventWorkloadDistributedError,
 		ManagerID:  managerId,
 		WorkerID:   workerId,

@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"context"
 	"testing"
 	"time"
 )
@@ -17,15 +16,14 @@ func TestWithManagerID(t *testing.T) {
 	}
 }
 
-func TestWithEventCallback(t *testing.T) {
-	mgr := &Manager{
-		eventCbs: []func(context.Context, *Event){},
-	}
+func TestWithSignaller(t *testing.T) {
+	mgr := &Manager{}
+	signaller := &SlogSignaller{}
 
-	WithEventCallback(func(ctx context.Context, e *Event) {})(mgr)
+	WithSignaller(signaller)(mgr)
 
-	if exp, recv := 1, len(mgr.eventCbs); exp != recv {
-		t.Fatalf("expected to have %d callbacks registered, but got: %d", exp, recv)
+	if mgr.signal == nil {
+		t.Fatalf("expected signaller to be a non-nil value")
 	}
 }
 

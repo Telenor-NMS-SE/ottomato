@@ -19,6 +19,12 @@ func WithSignaller(signaller Signals) Option {
 	}
 }
 
+func WithStateStorage(state StateStorage) Option {
+	return func(m *Manager) {
+		m.state = state
+	}
+}
+
 func WithDistributorInterval(t time.Duration) Option {
 	return func(m *Manager) {
 		m.distributionInterval = t

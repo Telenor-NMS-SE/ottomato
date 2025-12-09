@@ -71,6 +71,10 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		mgr.signal = NewSlogSignaller(nil)
 	}
 
+	if mgr.state == nil {
+		mgr.state = NewMemoryStore()
+	}
+
 	var err error
 	mgr.scheduler, err = gocron.NewScheduler(
 		gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),

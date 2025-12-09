@@ -8,9 +8,9 @@ import (
 func TestStateGetAllWorkers(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id: "worker0"},
-			"worker1": &MockWorker{id: "worker1"},
-			"worker2": &MockWorker{id: "worker2"},
+			"worker0": &mockWorker{id: "worker0"},
+			"worker1": &mockWorker{id: "worker1"},
+			"worker2": &mockWorker{id: "worker2"},
 		},
 	}
 
@@ -48,9 +48,9 @@ func TestStateGetAllWorkers(t *testing.T) {
 func TestStateGetWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id: "worker0"},
-			"worker1": &MockWorker{id: "worker1"},
-			"worker2": &MockWorker{id: "worker2"},
+			"worker0": &mockWorker{id: "worker0"},
+			"worker1": &mockWorker{id: "worker1"},
+			"worker2": &mockWorker{id: "worker2"},
 		},
 	}
 
@@ -69,7 +69,7 @@ func TestStateAddWorker(t *testing.T) {
 		workers: map[string]Worker{},
 	}
 
-	if err := state.AddWorker(context.TODO(), &MockWorker{id: "worker0"}); err != nil {
+	if err := state.AddWorker(context.TODO(), &mockWorker{id: "worker0"}); err != nil {
 		t.Fatalf("expected no error, but got: %v", err)
 	}
 
@@ -90,13 +90,13 @@ func TestStateAddWorker(t *testing.T) {
 func TestStateDeleteWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker0": &MockWorker{id: "worker0"},
-			"worker1": &MockWorker{id: "worker1"},
-			"worker2": &MockWorker{id: "worker2"},
+			"worker0": &mockWorker{id: "worker0"},
+			"worker1": &mockWorker{id: "worker1"},
+			"worker2": &mockWorker{id: "worker2"},
 		},
 	}
 
-	if err := state.DeleteWorker(context.TODO(), &MockWorker{id: "worker0"}); err != nil {
+	if err := state.DeleteWorker(context.TODO(), &mockWorker{id: "worker0"}); err != nil {
 		t.Fatalf("expected no error, but got: %v", err)
 	}
 
@@ -112,9 +112,9 @@ func TestStateDeleteWorker(t *testing.T) {
 func TestStateGetAllWorkloads(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id: "workload0"},
-			"workload1": &MockWorkload{id: "workload1"},
-			"workload2": &MockWorkload{id: "workload2"},
+			"workload0": &mockWorkload{id: "workload0"},
+			"workload1": &mockWorkload{id: "workload1"},
+			"workload2": &mockWorkload{id: "workload2"},
 		},
 	}
 
@@ -152,9 +152,9 @@ func TestStateGetAllWorkloads(t *testing.T) {
 func TestStateGetWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id: "workload0"},
-			"workload1": &MockWorkload{id: "workload1"},
-			"workload2": &MockWorkload{id: "workload2"},
+			"workload0": &mockWorkload{id: "workload0"},
+			"workload1": &mockWorkload{id: "workload1"},
+			"workload2": &mockWorkload{id: "workload2"},
 		},
 	}
 
@@ -173,7 +173,7 @@ func TestStateAddWorkload(t *testing.T) {
 		workloads: map[string]Workload{},
 	}
 
-	if err := state.AddWorkload(context.TODO(), &MockWorkload{id: "workload0"}); err != nil {
+	if err := state.AddWorkload(context.TODO(), &mockWorkload{id: "workload0"}); err != nil {
 		t.Fatalf("expected no error, but got: %v", err)
 	}
 
@@ -192,7 +192,7 @@ func TestStateAddWorkload(t *testing.T) {
 }
 
 func TestStateUpdateWorkload(t *testing.T) {
-	wl := &MockWorkload{
+	wl := &mockWorkload{
 		id:     "workload0",
 		status: StatusErr,
 	}
@@ -203,7 +203,7 @@ func TestStateUpdateWorkload(t *testing.T) {
 		},
 	}
 
-	updated := &MockWorkload{
+	updated := &mockWorkload{
 		id:     wl.GetID(),
 		status: StatusRunning,
 	}
@@ -220,13 +220,13 @@ func TestStateUpdateWorkload(t *testing.T) {
 func TestStateDeleteWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"workload0": &MockWorkload{id: "workload0"},
-			"workload1": &MockWorkload{id: "workload1"},
-			"workload2": &MockWorkload{id: "workload2"},
+			"workload0": &mockWorkload{id: "workload0"},
+			"workload1": &mockWorkload{id: "workload1"},
+			"workload2": &mockWorkload{id: "workload2"},
 		},
 	}
 
-	if err := state.DeleteWorkload(context.TODO(), &MockWorkload{id: "workload0"}); err != nil {
+	if err := state.DeleteWorkload(context.TODO(), &mockWorkload{id: "workload0"}); err != nil {
 		t.Fatalf("expected no error, but got: %v", err)
 	}
 
@@ -240,8 +240,8 @@ func TestStateDeleteWorkload(t *testing.T) {
 }
 
 func TestGetAssociations(t *testing.T) {
-	w := &MockWorker{id: "worker0"}
-	wl := &MockWorkload{id: "workload0"}
+	w := &mockWorker{id: "worker0"}
+	wl := &mockWorkload{id: "workload0"}
 
 	state := &MemoryStore{
 		workers: map[string]Worker{
@@ -270,8 +270,8 @@ func TestGetAssociations(t *testing.T) {
 }
 
 func TestGetAssociation(t *testing.T) {
-	w := &MockWorker{id: "worker0"}
-	wl := &MockWorkload{id: "workload0"}
+	w := &mockWorker{id: "worker0"}
+	wl := &mockWorkload{id: "workload0"}
 
 	state := &MemoryStore{
 		workers: map[string]Worker{
@@ -296,8 +296,8 @@ func TestGetAssociation(t *testing.T) {
 }
 
 func TestAssociate(t *testing.T) {
-	w := &MockWorker{id: "worker0"}
-	wl := &MockWorkload{id: "workload0"}
+	w := &mockWorker{id: "worker0"}
+	wl := &mockWorkload{id: "workload0"}
 
 	state := &MemoryStore{
 		workers: map[string]Worker{
@@ -328,8 +328,8 @@ func TestAssociate(t *testing.T) {
 }
 
 func TestDisassociate(t *testing.T) {
-	w := &MockWorker{id: "worker0"}
-	wl := &MockWorkload{id: "workload0"}
+	w := &mockWorker{id: "worker0"}
+	wl := &mockWorkload{id: "workload0"}
 
 	state := &MemoryStore{
 		workers: map[string]Worker{

@@ -12,10 +12,10 @@ func TestAssign(t *testing.T) {
 	mgr := &Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
-	w := &MockWorker{id: "worker1"}
-	wl := &MockWorkload{id: "workload1"}
+	w := &mockWorker{id: "worker1"}
+	wl := &mockWorkload{id: "workload1"}
 
 	mgr.Assign(w, wl)
 
@@ -44,24 +44,24 @@ func TestAssign(t *testing.T) {
 func TestDistributor(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker1": &MockWorker{id: "worker1"},
-			"worker2": &MockWorker{id: "worker2"},
+			"worker1": &mockWorker{id: "worker1"},
+			"worker2": &mockWorker{id: "worker2"},
 		},
 		workloads: map[string]Workload{
-			"workload1": &MockWorkload{id: "workload1"},
-			"workload2": &MockWorkload{id: "workload2"},
-			"workload3": &MockWorkload{id: "workload3"},
-			"workload4": &MockWorkload{id: "workload4"},
-			"workload5": &MockWorkload{id: "workload5"},
-			"workload6": &MockWorkload{id: "workload6"},
-			"workload7": &MockWorkload{id: "workload7"},
+			"workload1": &mockWorkload{id: "workload1"},
+			"workload2": &mockWorkload{id: "workload2"},
+			"workload3": &mockWorkload{id: "workload3"},
+			"workload4": &mockWorkload{id: "workload4"},
+			"workload5": &mockWorkload{id: "workload5"},
+			"workload6": &mockWorkload{id: "workload6"},
+			"workload7": &mockWorkload{id: "workload7"},
 		},
 		associations: map[string]string{},
 	}
 	mgr := &Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 	mgr.distributor()
 
@@ -100,23 +100,23 @@ func TestDistributor(t *testing.T) {
 func TestRebalancer(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker-0": &MockWorker{id: "worker0"},
-			"worker-1": &MockWorker{id: "worker1"},
+			"worker-0": &mockWorker{id: "worker0"},
+			"worker-1": &mockWorker{id: "worker1"},
 		},
 		workloads: map[string]Workload{
-			"workload0":  &MockWorkload{id: "workerload0"},
-			"workload1":  &MockWorkload{id: "workerload1"},
-			"workload2":  &MockWorkload{id: "workerload2"},
-			"workload3":  &MockWorkload{id: "workerload3"},
-			"workload4":  &MockWorkload{id: "workerload4"},
-			"workload5":  &MockWorkload{id: "workerload5"},
-			"workload6":  &MockWorkload{id: "workerload6"},
-			"workload7":  &MockWorkload{id: "workerload7"},
-			"workload8":  &MockWorkload{id: "workerload8"},
-			"workload9":  &MockWorkload{id: "workerload9"},
-			"workload10": &MockWorkload{id: "workerload10"},
-			"workload11": &MockWorkload{id: "workerload11"},
-			"workload12": &MockWorkload{id: "workerload12"},
+			"workload0":  &mockWorkload{id: "workerload0"},
+			"workload1":  &mockWorkload{id: "workerload1"},
+			"workload2":  &mockWorkload{id: "workerload2"},
+			"workload3":  &mockWorkload{id: "workerload3"},
+			"workload4":  &mockWorkload{id: "workerload4"},
+			"workload5":  &mockWorkload{id: "workerload5"},
+			"workload6":  &mockWorkload{id: "workerload6"},
+			"workload7":  &mockWorkload{id: "workerload7"},
+			"workload8":  &mockWorkload{id: "workerload8"},
+			"workload9":  &mockWorkload{id: "workerload9"},
+			"workload10": &mockWorkload{id: "workerload10"},
+			"workload11": &mockWorkload{id: "workerload11"},
+			"workload12": &mockWorkload{id: "workerload12"},
 		},
 		associations: map[string]string{
 			"workload0":  "worker1",
@@ -138,7 +138,7 @@ func TestRebalancer(t *testing.T) {
 	mgr := &Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 	mgr.rebalance()
 
@@ -167,15 +167,15 @@ func TestRebalancer(t *testing.T) {
 func TestDistributionCleanup(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"worker-0": &MockWorker{id: "worker-0"},
+			"worker-0": &mockWorker{id: "worker-0"},
 		},
 		workloads: map[string]Workload{
-			"workload-0": &MockWorkload{
+			"workload-0": &mockWorkload{
 				id:           "workload-0",
 				status:       StatusDistributing,
 				statusChange: time.Now().Add(-time.Hour),
 			},
-			"workload-1": &MockWorkload{
+			"workload-1": &mockWorkload{
 				id:           "workload-1",
 				status:       StatusErr,
 				statusChange: time.Now().Add(-time.Hour),
@@ -189,7 +189,7 @@ func TestDistributionCleanup(t *testing.T) {
 	mgr := &Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
 	mgr.cleanup()

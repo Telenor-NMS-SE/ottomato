@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-type MockSignaller struct{}
+type mockSignaller struct{}
 
-func (s *MockSignaller) Event(Event) {}
-func (s *MockSignaller) Error(error) {}
+func (s *mockSignaller) Event(Event) {}
+func (s *mockSignaller) Error(error) {}
 
 func TestManager(t *testing.T) {
 	mgr, err := New(context.Background())

@@ -5,20 +5,20 @@ import (
 	"testing"
 )
 
-type MockWorker struct {
+type mockWorker struct {
 	id  string
 	mgr *Manager
 }
 
-func (w *MockWorker) GetID() string {
+func (w *mockWorker) GetID() string {
 	return w.id
 }
 
-func (w *MockWorker) Unload(wl Workload) error {
+func (w *mockWorker) Unload(wl Workload) error {
 	return nil
 }
 
-func (w *MockWorker) Load(wl Workload) error {
+func (w *mockWorker) Load(wl Workload) error {
 	return nil
 }
 
@@ -27,9 +27,9 @@ func TestAddWorker(t *testing.T) {
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
-	worker := MockWorker{id: "test"}
+	worker := mockWorker{id: "test"}
 
 	if err := manager.AddWorker(context.TODO(), &worker); err != nil {
 		t.Fatalf("unexpected error when adding worker: %v", err)
@@ -47,13 +47,13 @@ func TestAddWorker(t *testing.T) {
 func TestGetWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"test": &MockWorker{id: "test"},
+			"test": &mockWorker{id: "test"},
 		},
 	}
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
 	w, err := manager.GetWorker(context.TODO(), "test")
@@ -74,12 +74,12 @@ func TestGetWorker(t *testing.T) {
 func TestAddDuplicateWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"test": &MockWorker{id: "test"},
+			"test": &mockWorker{id: "test"},
 		},
 	}
 	manager := Manager{
 	}
-	worker := MockWorker{id: "test"}
+	worker := mockWorker{id: "test"}
 
 	manager.AddWorker(&worker)
 
@@ -92,10 +92,10 @@ func TestAddDuplicateWorker(t *testing.T) {
 func TestDeleteWorker(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"test": &MockWorker{id: "test"},
+			"test": &mockWorker{id: "test"},
 		},
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 		associations: map[string]string{
 			"test": "test",
@@ -104,10 +104,10 @@ func TestDeleteWorker(t *testing.T) {
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
-	if err := manager.DeleteWorker(context.TODO(), &MockWorker{id: "test"}); err != nil {
+	if err := manager.DeleteWorker(context.TODO(), &mockWorker{id: "test"}); err != nil {
 		t.Fatalf("unexpected error when deleting worker: %v", err)
 	}
 
@@ -123,13 +123,13 @@ func TestDeleteWorker(t *testing.T) {
 func TestGetWorkers(t *testing.T) {
 	state := &MemoryStore{
 		workers: map[string]Worker{
-			"test": &MockWorker{id: "test"},
+			"test": &mockWorker{id: "test"},
 		},
 	}
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
 	workers, err := manager.Workers(context.TODO())

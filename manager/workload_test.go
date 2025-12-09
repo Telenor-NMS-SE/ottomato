@@ -6,26 +6,26 @@ import (
 	"time"
 )
 
-type MockWorkload struct {
+type mockWorkload struct {
 	id           string
 	status       Status
 	statusChange time.Time
 }
 
-func (wl *MockWorkload) GetID() string {
+func (wl *mockWorkload) GetID() string {
 	return wl.id
 }
 
-func (wl *MockWorkload) SetStatus(s Status) {
+func (wl *mockWorkload) SetStatus(s Status) {
 	wl.statusChange = time.Now()
 	wl.status = s
 }
 
-func (wl *MockWorkload) GetStatus() Status {
+func (wl *mockWorkload) GetStatus() Status {
 	return wl.status
 }
 
-func (wl *MockWorkload) LastStatusChange() time.Time {
+func (wl *mockWorkload) LastStatusChange() time.Time {
 	return wl.statusChange
 }
 
@@ -34,9 +34,9 @@ func TestAddWorkload(t *testing.T) {
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
-	workload := MockWorkload{id: "test"}
+	workload := mockWorkload{id: "test"}
 
 	manager.AddWorkload(context.TODO(), &workload)
 
@@ -52,13 +52,13 @@ func TestAddWorkload(t *testing.T) {
 func TestGetWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
 	wl, err := manager.GetWorkload(context.TODO(), "test")
@@ -79,16 +79,16 @@ func TestGetWorkload(t *testing.T) {
 func TestAddDuplicateWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
 	manager := Manager{
 		state: state,
 		ctx:   context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
-	err := manager.AddWorkload(&MockWorkload{id: "test"})
+	err := manager.AddWorkload(&mockWorkload{id: "test"})
 	if err == nil {
 		t.Fatalf("expected an error when adding a duplicate workload, but got none")
 	}
@@ -102,16 +102,16 @@ func TestAddDuplicateWorkload(t *testing.T) {
 func TestDeleteWorkload(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
-	manager.DeleteWorkload(context.TODO(), &MockWorkload{id: "test"})
+	manager.DeleteWorkload(context.TODO(), &mockWorkload{id: "test"})
 	if len(state.workers) > 0 {
 		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(state.workers))
 	}
@@ -120,13 +120,13 @@ func TestDeleteWorkload(t *testing.T) {
 func TestGetWorkloads(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{
-			"test": &MockWorkload{id: "test"},
+			"test": &mockWorkload{id: "test"},
 		},
 	}
 	manager := Manager{
 		state:  state,
 		ctx:    context.TODO(),
-		signal: &MockSignaller{},
+		signal: &mockSignaller{},
 	}
 
 	workloads, err := manager.Workloads(context.TODO())

@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"testing"
 )
 
@@ -24,11 +25,15 @@ func (w *MockWorker) Load(wl Workload) error {
 func TestAddWorker(t *testing.T) {
 	state := NewMemoryStore()
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 	worker := MockWorker{id: "test"}
 
-	manager.AddWorker(&worker)
+	if err := manager.AddWorker(context.TODO(), &worker); err != nil {
+		t.Fatalf("unexpected error when adding worker: %v", err)
+	}
 
 	if len(state.workers) != 1 {
 		t.Errorf("expected manager to have exactly 1 worker, but got: %d", len(state.workers))
@@ -46,12 +51,14 @@ func TestGetWorker(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	w, ok := manager.GetWorker("test")
-	if !ok {
-		t.Fatalf("expected to get a worker, but didn't")
+	w, err := manager.GetWorker(context.TODO(), "test")
+	if err != nil {
+		t.Fatalf("unexpected error when getting worker: %v", err)
 	}
 
 	if w == nil {
@@ -95,10 +102,15 @@ func TestDeleteWorker(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	manager.DeleteWorker(&MockWorker{id: "test"})
+	if err := manager.DeleteWorker(context.TODO(), &MockWorker{id: "test"}); err != nil {
+		t.Fatalf("unexpected error when deleting worker: %v", err)
+	}
+
 	if len(state.workers) > 0 {
 		t.Fatalf("expected worker count to be exactly 0, but got: %d", len(state.workers))
 	}
@@ -115,10 +127,16 @@ func TestGetWorkers(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	workers := manager.Workers()
+	workers, err := manager.Workers(context.TODO())
+	if err != nil {
+		t.Fatalf("unexpected error when getting workers: %v", err)
+	}
+
 	if len(workers) != 1 {
 		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workers))
 	}

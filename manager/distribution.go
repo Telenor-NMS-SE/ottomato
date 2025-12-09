@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"sort"
 	"time"
 )
@@ -11,20 +12,37 @@ const DELTA_MAX = 5
 // when a manager is started post worker startup. Bypasses
 // distribution steps for the workload.
 func (m *Manager) Assign(w Worker, wl Workload) {
+	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	defer cancel()
+
 	m.state.Lock()
 	defer m.state.Unlock()
 
 	wl.SetStatus(StatusRunning)
 
-	m.state.AddWorkload(wl)
-	m.state.Associate(wl, w)
+	if err := m.state.AddWorkload(ctx, wl); err != nil {
+		m.signal.Error(err)
+	}
+
+	if err := m.state.Associate(ctx, wl, w); err != nil {
+		m.signal.Error(err)
+	}
 }
 
 func (m *Manager) cleanup() {
+	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	defer cancel()
+
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	for _, wl := range m.state.GetAllWorkloads() {
+	workloads, err := m.state.GetAllWorkloads(ctx)
+	if err != nil {
+		m.signal.Error(err)
+		return
+	}
+
+	for _, wl := range workloads {
 		if time.Since(wl.LastStatusChange()) < m.cleanupMaxTime {
 			continue
 		}
@@ -32,14 +50,23 @@ func (m *Manager) cleanup() {
 		switch wl.GetStatus() {
 		case StatusDistributing:
 			wl.SetStatus(StatusErr)
-			m.state.UpdateWorkload(wl)
-
-			if w, ok := m.state.GetAssociation(wl); ok {
-				m.state.Disassociate(wl, w)
+			if err := m.state.UpdateWorkload(ctx, wl); err != nil {
+				m.signal.Error(err)
+				continue
 			}
+
+			w, err := m.state.GetAssociation(ctx, wl)
+			if err != nil {
+				m.signal.Error(err)
+				continue
+			}
+
+			m.state.Disassociate(ctx, wl, w)
 		case StatusErr:
 			wl.SetStatus(StatusInit)
-			m.state.UpdateWorkload(wl)
+			if err := m.state.UpdateWorkload(ctx, wl); err != nil {
+				m.signal.Error(err)
+			}
 		default:
 			continue
 		}
@@ -48,47 +75,89 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
+	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	defer cancel()
+
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	for _, wl := range m.state.GetAllWorkloads() {
+	workloads, err := m.state.GetAllWorkloads(ctx)
+	if err != nil {
+		m.signal.Error(err)
+		return
+	}
+
+	for _, wl := range workloads {
 		if wl.GetStatus() != StatusInit {
 			continue
 		}
 
+		workers, err := m.state.GetAllWorkers(ctx)
+		if err != nil {
+			m.signal.Error(err)
+			continue
+		}
+
 		counters := map[string]int{}
-		for _, w := range m.state.GetAllWorkers() {
-			counters[w.GetID()] = len(m.state.GetAssociations(w))
+		for _, w := range workers {
+			assocs, err := m.state.GetAssociations(ctx, w)
+			if err != nil {
+				m.signal.Error(err)
+				continue
+			}
+
+			counters[w.GetID()] = len(assocs)
 		}
 
 		lo, _, _ := m.sort(counters)
-		if w, ok := m.state.GetWorker(lo); ok {
-			if err := w.Load(wl); err != nil {
-				if m.eventCh != nil {
-					m.eventCh <- NewWorkloadDistributedErrorEvent(m.id, w.GetID(), wl)
-				}
-			} else {
-				if m.eventCh != nil {
-					m.eventCh <- NewWorkloadDistributedEvent(m.id, w.GetID(), wl)
-				}
+		w, err := m.state.GetWorker(ctx, lo)
+		if err != nil {
+			m.signal.Error(err)
+			continue
+		}
 
-				m.state.Associate(wl, w)
+		if err := w.Load(wl); err != nil {
+			m.signal.Event(NewWorkloadDistributedErrorEvent(m.id, w.GetID(), wl))
+			m.signal.Error(err)
+			continue
+		}
 
-				wl.SetStatus(StatusRunning)
-				m.state.UpdateWorkload(wl)
-			}
+		m.signal.Event(NewWorkloadDistributedEvent(m.id, w.GetID(), wl))
+		if err := m.state.Associate(ctx, wl, w); err != nil {
+			m.signal.Error(err)
+			continue
+		}
+		wl.SetStatus(StatusRunning)
+		if err := m.state.UpdateWorkload(ctx, wl); err != nil {
+			m.signal.Error(err)
+			continue
 		}
 	}
 }
 
 func (m *Manager) rebalance() {
+	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	defer cancel()
+
 	m.state.Lock()
 	defer m.state.Unlock()
 
 	for {
+		workers, err := m.state.GetAllWorkers(ctx)
+		if err != nil {
+			m.signal.Error(err)
+			break // no continue (possible infinite loop)
+		}
+
 		counters := map[string]int{}
-		for _, w := range m.state.GetAllWorkers() {
-			counters[w.GetID()] = len(m.state.GetAssociations(w))
+		for _, w := range workers {
+			assocs, err := m.state.GetAssociations(ctx, w)
+			if err != nil {
+				m.signal.Error(err)
+				continue
+			}
+
+			counters[w.GetID()] = len(assocs)
 		}
 
 		_, hi, delta := m.sort(counters)
@@ -96,32 +165,43 @@ func (m *Manager) rebalance() {
 			break
 		}
 
-		w, ok := m.state.GetWorker(hi)
-		if !ok {
+		w, err := m.state.GetWorker(ctx, hi)
+		if err != nil {
+			m.signal.Error(err)
 			continue
 		}
 
-		wls := m.state.GetAssociations(w)
-		sort.Slice(wls, func(i, j int) bool {
-			return wls[i].LastStatusChange().Before(wls[i].LastStatusChange())
+		workloads, err := m.state.GetAssociations(ctx, w)
+		if err != nil {
+			m.signal.Error(err)
+			continue
+		}
+
+		sort.Slice(workloads, func(i, j int) bool {
+			return workloads[i].LastStatusChange().Before(workloads[i].LastStatusChange())
 		})
 
 		for i := 0; i <= (delta - DELTA_MAX); i++ {
-			wl := wls[i]
+			wl := workloads[i]
 
 			if err := w.Unload(wl); err != nil {
 				continue
 			}
 
-			m.state.Disassociate(wl, w)
+			if err := m.state.Disassociate(ctx, wl, w); err != nil {
+				m.signal.Error(err)
+				continue
+			}
 
 			wl.SetStatus(StatusInit)
-			m.state.UpdateWorkload(wl)
+			if err := m.state.UpdateWorkload(ctx, wl); err != nil {
+				m.signal.Error(err)
+				continue
+			}
 		}
 	}
 }
 
-// requires, but does not acquire an RLock on m.workersMu
 func (m *Manager) sort(counters map[string]int) (string, string, int) {
 	type tmp struct {
 		Key   string

@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"errors"
 	"time"
 )
@@ -14,43 +15,49 @@ type Workload interface {
 
 var ErrWorkloadExists = errors.New("workload already exists")
 
-func (m *Manager) Workloads() []Workload {
+func (m *Manager) Workloads(ctx context.Context) ([]Workload, error) {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	return m.state.GetAllWorkloads()
+	return m.state.GetAllWorkloads(ctx)
 }
 
-func (m *Manager) GetWorkload(id string) (Workload, bool) {
+func (m *Manager) GetWorkload(ctx context.Context, id string) (Workload, error) {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	return m.state.GetWorkload(id)
+	return m.state.GetWorkload(ctx, id)
 }
 
-func (m *Manager) AddWorkload(wl Workload) {
+func (m *Manager) AddWorkload(ctx context.Context, wl Workload) error {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	m.state.AddWorkload(wl)
-
-	if m.eventCh != nil {
-		m.eventCh <- NewWorkloadAddedEvent(m.id, wl)
+	if err := m.state.AddWorkload(ctx, wl); err != nil {
+		return err
 	}
+
+	m.signal.Event(NewWorkloadAddedEvent(m.id, wl))
+	return nil
 }
 
-func (m *Manager) DeleteWorkload(wl Workload) {
+func (m *Manager) DeleteWorkload(ctx context.Context, wl Workload) error {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	if w, ok := m.state.GetAssociation(wl); ok {
-		m.state.Disassociate(wl, w)
-
+	w, err := m.state.GetAssociation(ctx, wl)
+	if err != nil {
+		return err
 	}
 
-	m.state.DeleteWorkload(wl)
-
-	if m.eventCh != nil {
-		m.eventCh <- NewWorkloadDeletedEvent(m.id, wl)
+	if err := m.state.Disassociate(ctx, wl, w); err != nil {
+		return err
 	}
+
+	if err := m.state.DeleteWorkload(ctx, wl); err != nil {
+		return err
+	}
+
+	m.signal.Event(NewWorkloadDeletedEvent(m.id, wl))
+	return nil
 }

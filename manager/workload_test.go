@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -31,11 +32,13 @@ func (wl *MockWorkload) LastStatusChange() time.Time {
 func TestAddWorkload(t *testing.T) {
 	state := NewMemoryStore()
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 	workload := MockWorkload{id: "test"}
 
-	manager.AddWorkload(&workload)
+	manager.AddWorkload(context.TODO(), &workload)
 
 	if len(state.workloads) != 1 {
 		t.Errorf("expected exactly 1 workload, but got: %d", len(state.workloads))
@@ -53,12 +56,14 @@ func TestGetWorkload(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	wl, ok := manager.GetWorkload("test")
-	if !ok {
-		t.Fatalf("expected to get a workload, but didn't")
+	wl, err := manager.GetWorkload(context.TODO(), "test")
+	if err != nil {
+		t.Fatalf("unexpected error when getting workload: %v", err)
 	}
 
 	if wl == nil {
@@ -79,6 +84,8 @@ func TestAddDuplicateWorkload(t *testing.T) {
 	}
 	manager := Manager{
 		state: state,
+		ctx:   context.TODO(),
+		signal: &MockSignaller{},
 	}
 
 	err := manager.AddWorkload(&MockWorkload{id: "test"})
@@ -99,10 +106,12 @@ func TestDeleteWorkload(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	manager.DeleteWorkload(&MockWorkload{id: "test"})
+	manager.DeleteWorkload(context.TODO(), &MockWorkload{id: "test"})
 	if len(state.workers) > 0 {
 		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(state.workers))
 	}
@@ -115,10 +124,16 @@ func TestGetWorkloads(t *testing.T) {
 		},
 	}
 	manager := Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
-	workloads := manager.Workloads()
+	workloads, err := manager.Workloads(context.TODO())
+	if err != nil {
+		t.Fatalf("unexpected error when getting workloads: %v", err)
+	}
+
 	if len(workloads) != 1 {
 		t.Fatalf("expected to get a slice of workers with a length of 1, but got: %d", len(workloads))
 	}

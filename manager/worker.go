@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"errors"
 )
 
@@ -12,65 +13,76 @@ type Worker interface {
 
 var ErrWorkerExists = errors.New("worker already exists")
 
-func (m *Manager) GetAssociation(wl Workload) (Worker, bool) {
+func (m *Manager) GetAssociation(ctx context.Context, wl Workload) (Worker, error) {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	return m.state.GetAssociation(wl)
+	return m.state.GetAssociation(ctx, wl)
 }
 
-func (m *Manager) GetAssosiactions(w Worker) []Workload {
+func (m *Manager) GetAssosiactions(ctx context.Context, w Worker) ([]Workload, error) {
 	m.state.Lock()
 	defer m.state.Unlock()
 
+	return m.state.GetAssociations(ctx, w)
+}
+
+func (m *Manager) Associate(ctx context.Context, wl Workload, w Worker) error {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	return m.state.Associate(ctx, wl, w)
+}
+
+func (m *Manager) Workers(ctx context.Context) ([]Worker, error) {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	return m.state.GetAllWorkers(ctx)
+}
+
+func (m *Manager) GetWorker(ctx context.Context, id string) (Worker, error) {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	return m.state.GetWorker(ctx, id)
+}
+
+func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
+	m.state.Lock()
+	defer m.state.Unlock()
+
+	if err := m.state.AddWorker(ctx, w); err != nil {
+		return err
+	}
+
+	m.signal.Event(NewWorkerAddedEvent(m.id, w))
 	return nil
 }
 
-func (m *Manager) Associate(wl Workload, w Worker) {
+func (m *Manager) DeleteWorker(ctx context.Context, w Worker) error {
 	m.state.Lock()
 	defer m.state.Unlock()
 
-	m.state.Associate(wl, w)
-}
-
-func (m *Manager) Workers() []Worker {
-	m.state.Lock()
-	defer m.state.Unlock()
-
-	return m.state.GetAllWorkers()
-}
-
-func (m *Manager) GetWorker(id string) (Worker, bool) {
-	m.state.Lock()
-	defer m.state.Unlock()
-
-	return m.state.GetWorker(id)
-}
-
-func (m *Manager) AddWorker(w Worker) {
-	m.state.Lock()
-	defer m.state.Unlock()
-
-	m.state.AddWorker(w)
-
-	if m.eventCh != nil {
-		m.eventCh <- NewWorkerAddedEvent(m.id, w)
+	assocs, err := m.state.GetAssociations(ctx, w)
+	if err != nil {
+		return err
 	}
-}
 
-func (m *Manager) DeleteWorker(w Worker) {
-	m.state.Lock()
-	defer m.state.Unlock()
-
-	for _, wl := range m.state.GetAssociations(w) {
-		m.state.Disassociate(wl, w)
+	for _, wl := range assocs {
+		if err := m.state.Disassociate(ctx, wl, w); err != nil {
+			return err
+		}
 		wl.SetStatus(StatusInit)
-		m.state.UpdateWorkload(wl)
+		if err := m.state.UpdateWorkload(ctx, wl); err != nil {
+			return err
+		}
 	}
 
-	m.state.DeleteWorker(w)
-
-	if m.eventCh != nil {
-		m.eventCh <- NewWorkerDeletedEvent(m.id, w)
+	if err := m.state.DeleteWorker(ctx, w); err != nil {
+		return err
 	}
+
+	m.signal.Event(NewWorkerDeletedEvent(m.id, w))
+	return nil
 }

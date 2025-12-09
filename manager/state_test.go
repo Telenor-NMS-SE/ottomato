@@ -1,6 +1,9 @@
 package manager
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestStateGetAllWorkers(t *testing.T) {
 	state := &MemoryStore{
@@ -11,7 +14,10 @@ func TestStateGetAllWorkers(t *testing.T) {
 		},
 	}
 
-	workers := state.GetAllWorkers()
+	workers, err := state.GetAllWorkers(context.TODO())
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 3, len(workers); exp != recv {
 		t.Fatalf("expected to receive %d workers, but got: %d", exp, recv)
@@ -48,9 +54,9 @@ func TestStateGetWorker(t *testing.T) {
 		},
 	}
 
-	w, ok := state.GetWorker("worker0")
-	if !ok {
-		t.Fatalf("expected to find worker 'worker0', but didn't")
+	w, err := state.GetWorker(context.TODO(), "worker0")
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
 	}
 
 	if exp, recv := "worker0", w.GetID(); exp != recv {
@@ -63,7 +69,9 @@ func TestStateAddWorker(t *testing.T) {
 		workers: map[string]Worker{},
 	}
 
-	state.AddWorker(&MockWorker{id: "worker0"})
+	if err := state.AddWorker(context.TODO(), &MockWorker{id: "worker0"}); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 1, len(state.workers); exp != recv {
 		t.Fatalf("expected to see %d worker(s), but found: %d", exp, recv)
@@ -88,7 +96,9 @@ func TestStateDeleteWorker(t *testing.T) {
 		},
 	}
 
-	state.DeleteWorker(&MockWorker{id: "worker0"})
+	if err := state.DeleteWorker(context.TODO(), &MockWorker{id: "worker0"}); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 2, len(state.workers); exp != recv {
 		t.Fatalf("expected to see %d worker(s), but got: %d", exp, recv)
@@ -108,7 +118,10 @@ func TestStateGetAllWorkloads(t *testing.T) {
 		},
 	}
 
-	workloads := state.GetAllWorkloads()
+	workloads, err := state.GetAllWorkloads(context.TODO())
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 3, len(workloads); exp != recv {
 		t.Fatalf("expected to receive %d workers, but got: %d", exp, recv)
@@ -145,9 +158,9 @@ func TestStateGetWorkload(t *testing.T) {
 		},
 	}
 
-	wl, ok := state.GetWorkload("workload0")
-	if !ok {
-		t.Fatalf("expected to find workload 'workload0', but didn't")
+	wl, err := state.GetWorkload(context.TODO(), "workload0")
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
 	}
 
 	if exp, recv := "workload0", wl.GetID(); exp != recv {
@@ -160,7 +173,9 @@ func TestStateAddWorkload(t *testing.T) {
 		workloads: map[string]Workload{},
 	}
 
-	state.AddWorkload(&MockWorkload{id: "workload0"})
+	if err := state.AddWorkload(context.TODO(), &MockWorkload{id: "workload0"}); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 1, len(state.workloads); exp != recv {
 		t.Fatalf("expected to see %d workload(s), but found: %d", exp, recv)
@@ -193,7 +208,9 @@ func TestStateUpdateWorkload(t *testing.T) {
 		status: StatusRunning,
 	}
 
-	state.UpdateWorkload(updated)
+	if err := state.UpdateWorkload(context.TODO(), updated); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if state.workloads[wl.GetID()].GetStatus() != StatusRunning {
 		t.Fatalf("expected workload to have an updated status to '%s', but got: %s", StatusRunning, state.workloads[wl.GetID()].GetStatus())
@@ -209,7 +226,9 @@ func TestStateDeleteWorkload(t *testing.T) {
 		},
 	}
 
-	state.DeleteWorkload(&MockWorkload{id: "workload0"})
+	if err := state.DeleteWorkload(context.TODO(), &MockWorkload{id: "workload0"}); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 2, len(state.workloads); exp != recv {
 		t.Fatalf("expected to see %d workload(s), but got: %d", exp, recv)
@@ -236,7 +255,10 @@ func TestGetAssociations(t *testing.T) {
 		},
 	}
 
-	assocs := state.GetAssociations(w)
+	assocs, err := state.GetAssociations(context.TODO(), w)
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 1, len(assocs); exp != recv {
 		t.Fatalf("expected to get %d association(s), but got: %d", exp, recv)
@@ -263,9 +285,9 @@ func TestGetAssociation(t *testing.T) {
 		},
 	}
 
-	assoc, ok := state.GetAssociation(wl)
-	if !ok {
-		t.Fatalf("expected to receive an association, but didn't")
+	assoc, err := state.GetAssociation(context.TODO(), wl)
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
 	}
 
 	if exp, recv := w.GetID(), assoc.GetID(); exp != recv {
@@ -287,7 +309,9 @@ func TestAssociate(t *testing.T) {
 		associations: map[string]string{},
 	}
 
-	state.Associate(wl, w)
+	if err := state.Associate(context.TODO(), wl, w); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 1, len(state.associations); exp != recv {
 		t.Fatalf("expected to see %d association(s), but got: %d", exp, recv)
@@ -319,7 +343,9 @@ func TestDisassociate(t *testing.T) {
 		},
 	}
 
-	state.Disassociate(wl, w)
+	if err := state.Disassociate(context.TODO(), wl, w); err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 
 	if exp, recv := 0, len(state.associations); exp != recv {
 		t.Fatalf("expected to find %d association(s), but got: %d", exp, recv)

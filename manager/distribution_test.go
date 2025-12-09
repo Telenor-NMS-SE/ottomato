@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -9,7 +10,9 @@ func TestAssign(t *testing.T) {
 	state := NewMemoryStore()
 
 	mgr := &Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 	w := &MockWorker{id: "worker1"}
 	wl := &MockWorkload{id: "workload1"}
@@ -56,7 +59,9 @@ func TestDistributor(t *testing.T) {
 		associations: map[string]string{},
 	}
 	mgr := &Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 	mgr.distributor()
 
@@ -64,9 +69,20 @@ func TestDistributor(t *testing.T) {
 		t.Errorf("expected length of distributed workloads to be %d got: %d", exp, recv)
 	}
 
+	workers, err := state.GetAllWorkers(context.TODO())
+	if err != nil {
+		t.Fatalf("unexpected error when getting all workers: %v", err)
+	}
+
 	counters := map[string]int{}
-	for _, w := range state.GetAllWorkers() {
-		counters[w.GetID()] = len(state.GetAssociations(w))
+	for _, w := range workers {
+		assocs, err := state.GetAssociations(context.TODO(), w)
+		if err != nil {
+			t.Errorf("unexpected error when getting associations: %v", err)
+			continue
+		}
+
+		counters[w.GetID()] = len(assocs)
 	}
 
 	_, _, delta := mgr.sort(counters)
@@ -120,13 +136,26 @@ func TestRebalancer(t *testing.T) {
 	}
 
 	mgr := &Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 	mgr.rebalance()
 
+	workers, err := state.GetAllWorkers(context.TODO())
+	if err != nil {
+		t.Fatalf("unexpected error when getting all workers: %v", err)
+	}
+
 	counters := map[string]int{}
-	for _, w := range state.GetAllWorkers() {
-		counters[w.GetID()] = len(state.GetAssociations(w))
+	for _, w := range workers {
+		assocs, err := state.GetAssociations(context.TODO(), w)
+		if err != nil {
+			t.Errorf("unexpected error when getting associations: %v", err)
+			continue
+		}
+
+		counters[w.GetID()] = len(assocs)
 	}
 
 	_, _, delta := mgr.sort(counters)
@@ -158,7 +187,9 @@ func TestDistributionCleanup(t *testing.T) {
 	}
 
 	mgr := &Manager{
-		state: state,
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &MockSignaller{},
 	}
 
 	mgr.cleanup()

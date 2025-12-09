@@ -13,10 +13,8 @@ type Manager struct {
 	ctx       context.Context
 	scheduler gocron.Scheduler
 
-	eventCbs []func(context.Context, *Event)
-	eventCh  chan (*Event)
-
-	state StateStorage
+	signal Signals
+	state  StateStorage
 
 	distributionInterval time.Duration
 	rebalanceInterval    time.Duration
@@ -24,25 +22,30 @@ type Manager struct {
 	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
 }
 
+type Signals interface {
+	Event(Event)
+	Error(error)
+}
+
 type StateStorage interface {
 	Lock()
 	Unlock()
 
-	GetAllWorkers() []Worker
-	GetWorker(string) (Worker, bool)
-	AddWorker(Worker)
-	DeleteWorker(Worker)
+	GetAllWorkers(context.Context) ([]Worker, error)
+	GetWorker(context.Context, string) (Worker, error)
+	AddWorker(context.Context, Worker) error
+	DeleteWorker(context.Context, Worker) error
 
-	GetAllWorkloads() []Workload
-	GetWorkload(string) (Workload, bool)
-	AddWorkload(Workload)
-	UpdateWorkload(Workload)
-	DeleteWorkload(Workload)
+	GetAllWorkloads(context.Context) ([]Workload, error)
+	GetWorkload(context.Context, string) (Workload, error)
+	AddWorkload(context.Context, Workload) error
+	UpdateWorkload(context.Context, Workload) error
+	DeleteWorkload(context.Context, Workload) error
 
-	GetAssociation(Workload) (Worker, bool)
-	GetAssociations(Worker) []Workload
-	Associate(Workload, Worker)
-	Disassociate(Workload, Worker)
+	GetAssociation(context.Context, Workload) (Worker, error)
+	GetAssociations(context.Context, Worker) ([]Workload, error)
+	Associate(context.Context, Workload, Worker) error
+	Disassociate(context.Context, Workload, Worker) error
 }
 
 type ctxScope string
@@ -101,25 +104,10 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 
 	mgr.scheduler.Start()
 
-	go mgr.eventLoop()
-
 	return mgr, nil
 }
 
 func (m *Manager) Stop() error {
 	m.ctx.Done()
 	return m.scheduler.Shutdown()
-}
-
-func (m *Manager) eventLoop() {
-	for {
-		select {
-		case e := <-m.eventCh:
-			for _, cb := range m.eventCbs {
-				go cb(m.ctx, e)
-			}
-		case <-m.ctx.Done():
-			return
-		}
-	}
 }

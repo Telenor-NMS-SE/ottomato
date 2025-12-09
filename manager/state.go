@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -115,6 +116,10 @@ func (s *MemoryStore) GetAssociation(_ context.Context, wl Workload) (Worker, er
 	}
 
 	w, ok := s.workers[workerId]
+	if !ok {
+		return nil, ErrWorkerNotFound
+	}
+
 	return w, nil
 }
 

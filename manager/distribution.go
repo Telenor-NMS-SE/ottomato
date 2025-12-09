@@ -61,7 +61,10 @@ func (m *Manager) cleanup() {
 				continue
 			}
 
-			m.state.Disassociate(ctx, wl, w)
+			if err := m.state.Disassociate(ctx, wl, w); err != nil {
+				m.signal.Error(err)
+				continue
+			}
 		case StatusErr:
 			wl.SetStatus(StatusInit)
 			if err := m.state.UpdateWorkload(ctx, wl); err != nil {

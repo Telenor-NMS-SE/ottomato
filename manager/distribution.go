@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"time"
 )
@@ -101,6 +102,11 @@ func (m *Manager) distributor() {
 			continue
 		}
 
+		if len(workers) == 0 {
+			m.signal.Error(errors.New("no workers to distribute to"))
+			return
+		}
+
 		counters := map[string]int{}
 		for _, w := range workers {
 			assocs, err := m.state.GetAssociations(ctx, w)
@@ -113,6 +119,11 @@ func (m *Manager) distributor() {
 		}
 
 		lo, _, _ := m.sort(counters)
+		if lo == "" {
+			m.signal.Error(errors.New("no lowest load worker"))
+			return
+		}
+
 		w, err := m.state.GetWorker(ctx, lo)
 		if err != nil {
 			m.signal.Error(err)

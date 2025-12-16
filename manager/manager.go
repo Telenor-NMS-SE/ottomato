@@ -17,6 +17,7 @@ type Manager struct {
 	state  StateStorage
 
 	distributionInterval time.Duration
+	distributionTimeout  time.Duration
 	rebalanceInterval    time.Duration
 	cleanupInterval      time.Duration
 	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
@@ -58,9 +59,10 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		ctx: context.WithValue(ctx, ctxScopeKey, "local"),
 
 		distributionInterval: time.Minute,
+		distributionTimeout:  50 * time.Second,
 		rebalanceInterval:    time.Minute,
-		cleanupInterval:      time.Minute * 5,
-		cleanupMaxTime:       time.Minute * 5,
+		cleanupInterval:      5 * time.Minute,
+		cleanupMaxTime:       5 * time.Minute,
 	}
 
 	for _, opt := range opts {

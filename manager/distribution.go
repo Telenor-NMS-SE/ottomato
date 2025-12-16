@@ -78,7 +78,7 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
-	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(m.ctx, m.distributionTimeout)
 	defer cancel()
 
 	m.state.Lock()

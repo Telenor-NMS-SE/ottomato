@@ -187,14 +187,31 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 		return meta, ErrWorkloadExists
 	}
 
-	if err := wl.Init(ctx); err != nil {
-		return meta, err
-	}
-
 	job, err := w.sc.NewJob(
 		gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
 		gocron.NewTask(w.stateCheck(wl.Name())),
 		gocron.WithName(fmt.Sprintf("worker state check: %s", wl.Name())),
+		gocron.WithContext(ctx),
+	)
+	if err != nil {
+		return meta, err
+	}
+
+	_, err = w.sc.NewJob(
+		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+		gocron.NewTask(func() {
+			if err := wl.Init(ctx); err != nil {
+				w.workloadsMu.Lock()
+				defer w.workloadsMu.Unlock()
+
+				delete(w.workloads, wl.Name())
+				w.EventCh <- NewWorkloadDeletedEvent(w.config.id, wl.Name())
+				return
+			}
+
+			w.EventCh <- NewWorkloadInitiatedEvent(w.config.id, wl.Name())
+		}),
+		gocron.WithName(fmt.Sprintf("workload initialization: %s", wl.Name())),
 		gocron.WithContext(ctx),
 	)
 	if err != nil {
@@ -209,8 +226,7 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 	}
 	meta["id"] = job.ID().String()
 
-	w.EventCh <- *NewWorkloadInitiatedEvent(w.config.id, wl.Name())
-
+	w.EventCh <- NewWorkloadAddedEvent(w.config.id, wl.Name())
 	return meta, nil
 }
 
@@ -234,7 +250,7 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 	}
 
 	delete(w.workloads, name)
-	w.EventCh <- *NewWorkloadDeadEvent(w.config.id, name)
+	w.EventCh <- NewWorkloadDeadEvent(w.config.id, name)
 
 	return err
 }
@@ -304,10 +320,10 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		defer w.failMu.Unlock()
 
 		if err != nil {
-			w.EventCh <- *NewWorkloadUnreachableEvent(w.config.id, host)
+			w.EventCh <- NewWorkloadUnreachableEvent(w.config.id, host)
 			w.failCounter[host] += 1
 		} else {
-			w.EventCh <- *NewWorkloadReachableEvent(w.config.id, host)
+			w.EventCh <- NewWorkloadReachableEvent(w.config.id, host)
 			delete(w.failCounter, host)
 		}
 	}

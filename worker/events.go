@@ -19,18 +19,24 @@ const (
 	EventUnreachable
 	EventReachable
 	EventDead
+	EventAdded
+	EventDeleted
 )
 
 func (e EventType) String() string {
 	switch e {
 	case EventInitialized:
-		return "EventInitialized"
+		return "workload.initialized"
 	case EventUnreachable:
-		return "EventUnreachable"
+		return "workload.unreachable"
 	case EventReachable:
-		return "EventReachable"
+		return "workload.reachable"
 	case EventDead:
-		return "EventDead"
+		return "workload.dead"
+	case EventAdded:
+		return "workload.added"
+	case EventDeleted:
+		return "workload.deleted"
 	default:
 		return ""
 	}
@@ -47,13 +53,13 @@ func (e EventType) MarshalJSON() ([]byte, error) {
 
 func (e *EventType) UnmarshalJSON(data []byte) error {
 	switch string(data) {
-	case "`EventInitialized`":
+	case "`workload.initialized`":
 		*e = EventInitialized
-	case "`EventUnreachable`":
+	case "`workload.unreachable`":
 		*e = EventUnreachable
-	case "`EventReachable`":
+	case "`workload.reachable`":
 		*e = EventReachable
-	case "`EventDead`":
+	case "`workload.dead`":
 		*e = EventDead
 	default:
 		return errors.New("invalid event type")
@@ -69,8 +75,24 @@ const (
 	MsgWorkloadDead        = "workload unresponsive"
 )
 
-func NewWorkloadInitiatedEvent(workerId string, workloadName string) *Event {
-	return &Event{
+func NewWorkloadAddedEvent(workerId string, workloadName string) Event {
+	return Event{
+		EventType:    EventAdded,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+	}
+}
+
+func NewWorkloadDeletedEvent(workerId string, workloadName string) Event {
+	return Event{
+		EventType:    EventDeleted,
+		Worker:       workerId,
+		WorkloadName: workloadName,
+	}
+}
+
+func NewWorkloadInitiatedEvent(workerId string, workloadName string) Event {
+	return Event{
 		EventType:    EventInitialized,
 		Worker:       workerId,
 		WorkloadName: workloadName,
@@ -78,8 +100,8 @@ func NewWorkloadInitiatedEvent(workerId string, workloadName string) *Event {
 	}
 }
 
-func NewWorkloadReachableEvent(workerId string, workloadName string) *Event {
-	return &Event{
+func NewWorkloadReachableEvent(workerId string, workloadName string) Event {
+	return Event{
 		EventType:    EventReachable,
 		Worker:       workerId,
 		WorkloadName: workloadName,
@@ -87,8 +109,8 @@ func NewWorkloadReachableEvent(workerId string, workloadName string) *Event {
 	}
 }
 
-func NewWorkloadUnreachableEvent(workerId string, workloadName string) *Event {
-	return &Event{
+func NewWorkloadUnreachableEvent(workerId string, workloadName string) Event {
+	return Event{
 		EventType:    EventUnreachable,
 		Worker:       workerId,
 		WorkloadName: workloadName,
@@ -96,8 +118,8 @@ func NewWorkloadUnreachableEvent(workerId string, workloadName string) *Event {
 	}
 }
 
-func NewWorkloadDeadEvent(workerId string, workloadName string) *Event {
-	return &Event{
+func NewWorkloadDeadEvent(workerId string, workloadName string) Event {
+	return Event{
 		EventType:    EventDead,
 		Worker:       workerId,
 		WorkloadName: workloadName,

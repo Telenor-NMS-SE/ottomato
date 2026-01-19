@@ -365,7 +365,7 @@ func (w *Worker) stateUpdateCb(ctx context.Context, e Event) {
 	switch e.EventType {
 	case EventInitialized:
 		w.sr.RegisterWorkload(e.WorkloadName, w.config.id)
-	case EventDead:
+	case EventDead, EventDeleted:
 		w.sr.DeleteWorkload(e.WorkloadName, w.config.id)
 	case EventReachable:
 		w.sr.UpdateWorkload(e.WorkloadName, w.config.id)

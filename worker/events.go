@@ -53,6 +53,8 @@ func (e EventType) MarshalJSON() ([]byte, error) {
 
 func (e *EventType) UnmarshalJSON(data []byte) error {
 	switch string(data) {
+	case "`workload.added`":
+		*e = EventAdded
 	case "`workload.initialized`":
 		*e = EventInitialized
 	case "`workload.unreachable`":

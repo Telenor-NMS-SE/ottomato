@@ -198,7 +198,7 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 	}
 
 	_, err = w.sc.NewJob(
-		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(250*time.Millisecond))),
 		gocron.NewTask(func() {
 			if err := wl.Init(ctx); err != nil {
 				w.workloadsMu.Lock()

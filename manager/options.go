@@ -54,3 +54,9 @@ func WithCleanupMaxTime(t time.Duration) Option {
 		m.cleanupMaxTime = t
 	}
 }
+
+func WithMaxDelta(d int) Option {
+	return func(m *Manager) {
+		m.maxDelta = d
+	}
+}

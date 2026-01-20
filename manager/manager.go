@@ -20,7 +20,9 @@ type Manager struct {
 	distributionTimeout  time.Duration
 	rebalanceInterval    time.Duration
 	cleanupInterval      time.Duration
-	cleanupMaxTime       time.Duration //Max time a workload can be in a errornous state
+	cleanupMaxTime       time.Duration // Max time a workload can be in a errornous state
+
+	maxDelta int // Max allowed delta for workers' distributed workloads
 }
 
 type Signals interface {
@@ -63,6 +65,8 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		rebalanceInterval:    time.Minute,
 		cleanupInterval:      5 * time.Minute,
 		cleanupMaxTime:       5 * time.Minute,
+
+		maxDelta: 5,
 	}
 
 	for _, opt := range opts {

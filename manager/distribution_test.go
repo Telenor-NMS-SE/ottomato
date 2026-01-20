@@ -136,9 +136,10 @@ func TestRebalancer(t *testing.T) {
 	}
 
 	mgr := &Manager{
-		state:  state,
-		ctx:    context.TODO(),
-		signal: &mockSignaller{},
+		state:    state,
+		ctx:      context.TODO(),
+		signal:   &mockSignaller{},
+		maxDelta: 5,
 	}
 	mgr.rebalance()
 
@@ -159,8 +160,8 @@ func TestRebalancer(t *testing.T) {
 	}
 
 	_, _, delta := mgr.sort(counters)
-	if delta > DELTA_MAX {
-		t.Errorf("expected delta of rebalanced workloads to be no more than %d, got: %d", DELTA_MAX, delta)
+	if delta > mgr.maxDelta {
+		t.Errorf("expected delta of rebalanced workloads to be no more than %d, got: %d", mgr.maxDelta, delta)
 	}
 }
 

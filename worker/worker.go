@@ -363,9 +363,9 @@ func (w *Worker) eventLoop() {
 // An event callback that makes sure state is up to date
 func (w *Worker) stateUpdateCb(ctx context.Context, e Event) {
 	switch e.EventType {
-	case EventInitialized:
+	case EventInitialized, EventAdded:
 		w.sr.RegisterWorkload(e.WorkloadName, w.config.id)
-	case EventDead:
+	case EventDead, EventDeleted:
 		w.sr.DeleteWorkload(e.WorkloadName, w.config.id)
 	case EventReachable:
 		w.sr.UpdateWorkload(e.WorkloadName, w.config.id)

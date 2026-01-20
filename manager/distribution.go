@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const DELTA_MAX = 5
-
 // Assign a workload to a worker, commonly used to backfill
 // when a manager is started post worker startup. Bypasses
 // distribution steps for the workload.
@@ -175,7 +173,7 @@ func (m *Manager) rebalance() {
 		}
 
 		_, hi, delta := m.sort(counters)
-		if delta <= DELTA_MAX {
+		if delta <= m.maxDelta {
 			break
 		}
 
@@ -195,7 +193,7 @@ func (m *Manager) rebalance() {
 			return workloads[i].LastStatusChange().Before(workloads[i].LastStatusChange())
 		})
 
-		for i := 0; i <= (delta - DELTA_MAX); i++ {
+		for i := 0; i <= (delta - m.maxDelta); i++ {
 			wl := workloads[i]
 
 			if err := w.Unload(wl); err != nil {

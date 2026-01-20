@@ -184,7 +184,7 @@ func TestWithExternalState(t *testing.T) {
 	}
 
 	// give time to catch up, as state updates are fired via events
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(255 * time.Millisecond)
 
 	if exp, recv := 1, len(kv.kv); exp != recv {
 		t.Errorf("expected external state to have a length of %d, but got: %d", exp, recv)

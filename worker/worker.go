@@ -330,6 +330,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		} else {
 			w.EventCh <- NewWorkloadReachableEvent(w.config.id, host)
 			delete(w.failCounter, host)
+			w.sr.UpdateWorkload(host, w.config.id)
 		}
 	}
 }

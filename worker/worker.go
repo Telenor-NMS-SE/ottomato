@@ -205,7 +205,9 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 				defer w.workloadsMu.Unlock()
 
 				delete(w.workloads, wl.Name())
+				w.sr.DeleteWorkload(wl.Name(), w.GetWorkerID())
 				w.EventCh <- NewWorkloadDeletedEvent(w.config.id, wl.Name())
+
 				return
 			}
 
@@ -226,7 +228,9 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 	}
 	meta["id"] = job.ID().String()
 
+	w.sr.RegisterWorkload(wl.Name(), w.GetWorkerID())
 	w.EventCh <- NewWorkloadAddedEvent(w.config.id, wl.Name())
+
 	return meta, nil
 }
 
@@ -250,6 +254,7 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 	}
 
 	delete(w.workloads, name)
+	w.sr.DeleteWorkload(name, w.GetWorkerID())
 	w.EventCh <- NewWorkloadDeadEvent(w.config.id, name)
 
 	return err
@@ -364,10 +369,10 @@ func (w *Worker) eventLoop() {
 func (w *Worker) stateUpdateCb(ctx context.Context, e Event) {
 	switch e.EventType {
 	case EventInitialized, EventAdded:
-		w.sr.RegisterWorkload(e.WorkloadName, w.config.id)
+		//w.sr.RegisterWorkload(e.WorkloadName, w.config.id)
 	case EventDead, EventDeleted:
-		w.sr.DeleteWorkload(e.WorkloadName, w.config.id)
+		//w.sr.DeleteWorkload(e.WorkloadName, w.config.id)
 	case EventReachable:
-		w.sr.UpdateWorkload(e.WorkloadName, w.config.id)
+		//w.sr.UpdateWorkload(e.WorkloadName, w.config.id)
 	}
 }

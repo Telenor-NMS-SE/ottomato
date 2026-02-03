@@ -89,7 +89,7 @@ func (m *Manager) distributor() {
 	}
 
 	var wm = make(map[string]Worker, len(workers))
-	var current map[string][]string
+	var current = make(map[string][]string, len(workers))
 	for _, w := range workers {
 		wm[w.GetID()] = w
 
@@ -184,6 +184,16 @@ outer:
 		wg.Go(func() {
 			if err := wm[w].Load(wlm[wl]); err != nil {
 				m.signal.Error(fmt.Errorf("failed to load workload '%s' on to worker '%s': %w", wl, w, err))
+				return
+			}
+
+			wlm[wl].SetStatus(StatusRunning)
+			if err := m.state.UpdateWorkload(ctx, wlm[wl]); err != nil {
+				m.signal.Error(fmt.Errorf("failed to update workload state on '%s' after distribution: %w", wl, err))
+			}
+
+			if err := m.state.Associate(ctx, wlm[wl], wm[w]); err != nil {
+				m.signal.Error(fmt.Errorf("failed to associate workload '%s' with worker '%s': %w", wl, w, err))
 			}
 		})
 	}

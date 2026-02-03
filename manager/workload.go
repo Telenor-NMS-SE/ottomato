@@ -13,6 +13,29 @@ type Workload interface {
 	LastStatusChange() time.Time
 }
 
+type workload struct {
+	id     string
+	status Status
+	change time.Time
+}
+
+func (wl *workload) GetID() string {
+	return wl.id
+}
+
+func (wl *workload) GetStatus() Status {
+	return wl.status
+}
+
+func (wl *workload) SetStatus(s Status) {
+	wl.status = s
+	wl.change = time.Now()
+}
+
+func (wl *workload) LastStatusChange() time.Time {
+	return wl.change
+}
+
 var ErrWorkloadExists = errors.New("workload already exists")
 
 func (m *Manager) Workloads(ctx context.Context) ([]Workload, error) {

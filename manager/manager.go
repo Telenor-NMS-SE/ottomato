@@ -94,6 +94,7 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		gocron.DurationJob(mgr.distributionInterval),
 		gocron.NewTask(mgr.distributor),
 		gocron.WithContext(ctx),
+		gocron.WithIntervalFromCompletion(),
 	); err != nil {
 		return mgr, err
 	}
@@ -103,6 +104,7 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		gocron.DurationJob(mgr.rebalanceInterval),
 		gocron.NewTask(mgr.rebalance),
 		gocron.WithContext(ctx),
+		gocron.WithIntervalFromCompletion(),
 	); err != nil {
 		return mgr, err
 	}

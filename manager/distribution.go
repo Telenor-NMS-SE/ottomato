@@ -3,7 +3,10 @@ package manager
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -80,71 +83,112 @@ func (m *Manager) distributor() {
 	ctx, cancel := context.WithTimeout(m.ctx, m.distributionTimeout)
 	defer cancel()
 
-	m.state.Lock()
-	defer m.state.Unlock()
-
-	workloads, err := m.state.GetAllWorkloads(ctx)
+	workers, err := m.state.GetAllWorkers(ctx)
 	if err != nil {
-		m.signal.Error(err)
+		m.signal.Error(fmt.Errorf("failed to distribute: failed to get workers: %w", err))
 		return
 	}
 
-	for _, wl := range workloads {
-		if wl.GetStatus() != StatusInit {
-			continue
-		}
+	var wm = make(map[string]Worker, len(workers))
+	var current map[string][]string
+	for _, w := range workers {
+		wm[w.GetID()] = w
 
-		workers, err := m.state.GetAllWorkers(ctx)
+		workloads, err := m.state.GetAssociations(ctx, w)
 		if err != nil {
-			m.signal.Error(err)
-			continue
-		}
-
-		if len(workers) == 0 {
-			m.signal.Error(errors.New("no workers to distribute to"))
+			m.signal.Error(fmt.Errorf("failed to distribute: failed to get worker associations: %w", err))
 			return
 		}
 
-		counters := map[string]int{}
-		for _, w := range workers {
-			assocs, err := m.state.GetAssociations(ctx, w)
-			if err != nil {
-				m.signal.Error(err)
+		current[w.GetID()] = make([]string, 0, len(workloads))
+		for _, wl := range workloads {
+			current[w.GetID()] = append(current[w.GetID()], wl.GetID())
+		}
+	}
+
+	workloads, err := m.state.GetAllWorkloads(ctx)
+	if err != nil {
+		m.signal.Error(fmt.Errorf("failed to distribute: failed to get workloads: %w", err))
+		return
+	}
+
+	var wlm = make(map[string]Workload, len(workloads))
+	wanted := make([]string, 0, len(workloads))
+	for _, wl := range workloads {
+		wlm[wl.GetID()] = wl
+		wanted = append(wanted, wl.GetID())
+	}
+
+	deletes := map[string][]string{}
+	for w, wls := range current {
+		deletes[w] = []string{}
+
+		c := []string{}
+		for _, wl := range wls {
+			if slices.Contains(wanted, wl) {
+				c = append(c, wl)
 				continue
 			}
 
-			counters[w.GetID()] = len(assocs)
+			deletes[w] = append(deletes[w], wl)
 		}
 
-		lo, _, _ := m.sort(counters)
-		if lo == "" {
-			m.signal.Error(errors.New("no lowest load worker"))
-			return
-		}
+		current[w] = c
+	}
 
-		w, err := m.state.GetWorker(ctx, lo)
-		if err != nil {
-			m.signal.Error(err)
-			continue
-		}
-
-		if err := w.Load(wl); err != nil {
-			m.signal.Event(NewWorkloadDistributedErrorEvent(m.id, w.GetID(), wl))
-			m.signal.Error(err)
-			continue
-		}
-
-		m.signal.Event(NewWorkloadDistributedEvent(m.id, w.GetID(), wl))
-		if err := m.state.Associate(ctx, wl, w); err != nil {
-			m.signal.Error(err)
-			continue
-		}
-		wl.SetStatus(StatusRunning)
-		if err := m.state.UpdateWorkload(ctx, wl); err != nil {
-			m.signal.Error(err)
-			continue
+	var wg sync.WaitGroup
+	for w, dels := range deletes {
+		for _, del := range dels {
+			wg.Go(func() {
+				if err := wm[w].Unload(&workload{id: del}); err != nil {
+					m.signal.Error(fmt.Errorf("failed to unload unwanted workload '%s' from '%s': %w", del, w, err))
+				}
+			})
 		}
 	}
+	wg.Wait()
+
+	distribute := []string{}
+outer:
+	for _, wl := range wanted {
+		for _, wls := range current {
+			if slices.Contains(wls, wl) {
+				continue outer
+			}
+		}
+
+		distribute = append(distribute, wl)
+	}
+
+	load := make(map[string]int, len(current))
+	for w, wls := range current {
+		load[w] = len(wls)
+	}
+
+	distribution := map[string]string{}
+	for _, wl := range distribute {
+		var wid = ""
+		var min = 999_999_999
+
+		for w, l := range load {
+			if l < min || wid == "" {
+				wid = w
+				min = l
+			}
+		}
+
+		distribution[wl] = wid
+		load[wid] += 1
+	}
+
+	for wl, w := range distribution {
+		wg.Go(func() {
+			if err := wm[w].Load(wlm[wl]); err != nil {
+				m.signal.Error(fmt.Errorf("failed to load workload '%s' on to worker '%s': %w", wl, w, err))
+			}
+		})
+	}
+	wg.Wait()
 }
 
 func (m *Manager) rebalance() {

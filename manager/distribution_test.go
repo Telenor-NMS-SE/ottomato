@@ -59,9 +59,10 @@ func TestDistributor(t *testing.T) {
 		associations: map[string]string{},
 	}
 	mgr := &Manager{
-		state:  state,
-		ctx:    context.TODO(),
-		signal: &mockSignaller{},
+		state:               state,
+		ctx:                 context.TODO(),
+		signal:              &mockSignaller{},
+		distributionTimeout: time.Minute,
 	}
 	mgr.distributor()
 

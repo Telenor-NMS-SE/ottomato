@@ -211,7 +211,7 @@ outer:
 }
 
 func (m *Manager) rebalance() {
-	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	m.state.Lock()

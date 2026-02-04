@@ -139,6 +139,11 @@ func (m *Manager) distributor() {
 	for w, dels := range deletes {
 		for _, del := range dels {
 			wg.Go(func() {
+				if err := ctx.Err(); err != nil {
+					m.signal.Error(fmt.Errorf("failed to delete workload '%s' from '%s': %w", del, w, err))
+					return
+				}
+
 				if err := wm[w].Unload(&workload{id: del}); err != nil {
 					m.signal.Error(fmt.Errorf("failed to unload unwanted workload '%s' from '%s': %w", del, w, err))
 				}
@@ -182,6 +187,11 @@ outer:
 
 	for wl, w := range distribution {
 		wg.Go(func() {
+			if err := ctx.Err(); err != nil {
+				m.signal.Error(fmt.Errorf("failed to distribute workload '%s' to '%s': %w", wl, w, err))
+				return
+			}
+
 			if err := wm[w].Load(wlm[wl]); err != nil {
 				m.signal.Error(fmt.Errorf("failed to load workload '%s' on to worker '%s': %w", wl, w, err))
 				return

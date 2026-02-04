@@ -79,7 +79,7 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
-	ctx, cancel := context.WithTimeout(m.ctx, m.distributionTimeout)
+	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	workers, err := m.state.GetAllWorkers(ctx)

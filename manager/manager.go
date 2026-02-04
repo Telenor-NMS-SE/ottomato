@@ -61,10 +61,19 @@ func New(ctx context.Context, opts ...Option) (*Manager, error) {
 		ctx: context.WithValue(ctx, ctxScopeKey, "local"),
 
 		distributionInterval: time.Minute,
-		distributionTimeout:  50 * time.Second,
-		rebalanceInterval:    time.Minute,
-		cleanupInterval:      5 * time.Minute,
-		cleanupMaxTime:       5 * time.Minute,
+		// Distribution timeout is not needed after gocron update
+		// which gives us access to singleton job which sets its
+		// next run interval when the current job is finished.
+		// This context timeout has been troublesome, as doing
+		// distributions over the network means that a context
+		// timeout can be exceeded, but we're still distributing
+		// workloads to workers, which leads to an uncertain state.
+		// distributionTimeout:  50 * time.Second
+
+		rebalanceInterval: time.Minute,
+
+		cleanupInterval: 5 * time.Minute,
+		cleanupMaxTime:  5 * time.Minute,
 
 		maxDelta: 5,
 	}

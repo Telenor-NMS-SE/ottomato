@@ -79,7 +79,10 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
-	ctx, cancel := context.WithTimeout(m.ctx, m.distributionTimeout)
+	m.mainJobMu.Lock()
+	defer m.mainJobMu.Unlock()
+
+	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	workers, err := m.state.GetAllWorkers(ctx)
@@ -139,6 +142,11 @@ func (m *Manager) distributor() {
 	for w, dels := range deletes {
 		for _, del := range dels {
 			wg.Go(func() {
+				if err := ctx.Err(); err != nil {
+					m.signal.Error(fmt.Errorf("failed to delete workload '%s' from '%s': %w", del, w, err))
+					return
+				}
+
 				if err := wm[w].Unload(&workload{id: del}); err != nil {
 					m.signal.Error(fmt.Errorf("failed to unload unwanted workload '%s' from '%s': %w", del, w, err))
 				}
@@ -182,6 +190,11 @@ outer:
 
 	for wl, w := range distribution {
 		wg.Go(func() {
+			if err := ctx.Err(); err != nil {
+				m.signal.Error(fmt.Errorf("failed to distribute workload '%s' to '%s': %w", wl, w, err))
+				return
+			}
+
 			if err := wm[w].Load(wlm[wl]); err != nil {
 				m.signal.Error(fmt.Errorf("failed to load workload '%s' on to worker '%s': %w", wl, w, err))
 				return
@@ -201,7 +214,10 @@ outer:
 }
 
 func (m *Manager) rebalance() {
-	ctx, cancel := context.WithTimeout(m.ctx, 5*time.Second)
+	m.mainJobMu.Lock()
+	defer m.mainJobMu.Unlock()
+
+	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
 	m.state.Lock()

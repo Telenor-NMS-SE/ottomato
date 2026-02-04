@@ -31,11 +31,14 @@ func WithDistributorInterval(t time.Duration) Option {
 	}
 }
 
+/*
+Removed. See config option in Manager{}
 func WithDistributorTimeout(t time.Duration) Option {
 	return func(m *Manager) {
 		m.distributionTimeout = t
 	}
 }
+*/
 
 func WithRebalanceInterval(t time.Duration) Option {
 	return func(m *Manager) {

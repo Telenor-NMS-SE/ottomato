@@ -32,7 +32,7 @@ type Manager struct {
 	// distributions over the network means that a context
 	// timeout can be exceeded, but we're still distributing
 	// workloads to workers, which leads to an uncertain state.
-	distributionTimeout time.Duration
+	// distributionTimeout time.Duration
 
 	maxDelta int // Max allowed delta for workers' distributed workloads
 }

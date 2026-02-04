@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -15,6 +16,9 @@ type Manager struct {
 
 	signal Signals
 	state  StateStorage
+
+	// used to guarantee exclusivity between dist and rebalance
+	mainJobMu sync.Mutex
 
 	distributionInterval time.Duration
 	rebalanceInterval    time.Duration

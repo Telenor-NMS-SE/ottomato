@@ -79,6 +79,9 @@ func (m *Manager) cleanup() {
 }
 
 func (m *Manager) distributor() {
+	m.mainJobMu.Lock()
+	defer m.mainJobMu.Unlock()
+
 	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
@@ -211,6 +214,9 @@ outer:
 }
 
 func (m *Manager) rebalance() {
+	m.mainJobMu.Lock()
+	defer m.mainJobMu.Unlock()
+
 	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 

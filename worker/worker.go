@@ -156,10 +156,12 @@ func (w *Worker) Stop() error {
 func (w *Worker) RunTask(ctx context.Context, target string, task *Task) (Result, error) {
 	start := time.Now()
 
+	w.workloadsMu.RLock()
 	wl, exists := w.workloads[target]
 	if !exists {
 		return Result{}, ErrWorkloadNotFound
 	}
+	w.workloadsMu.RUnlock()
 
 	job, err := wl.object.RunTask(ctx, task)
 
@@ -262,6 +264,9 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 
 // This should return []map[string]string with a bunch of metadata
 func (w *Worker) Workloads() []map[string]any {
+	w.workloadsMu.RLock()
+	defer w.workloadsMu.RUnlock()
+
 	keys := make([]map[string]any, 0, len(w.workloads))
 
 	for k, v := range w.workloads {
@@ -313,10 +318,12 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		ctx, cancel := context.WithTimeout(ctx, w.config.pingTimeout)
 		defer cancel()
 
+		w.workloadsMu.RLock()
 		wl, exists := w.workloads[host]
 		if !exists {
 			return
 		}
+		w.workloadsMu.RUnlock()
 
 		//moving ping before lock, can be longrunning dont want to tie upp the mutex
 		err := wl.object.Ping(ctx)

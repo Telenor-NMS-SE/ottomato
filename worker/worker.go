@@ -29,6 +29,8 @@ type (
 		failMu      sync.Mutex
 		failCounter map[string]int
 
+		initQueueCh chan string
+
 		config config
 	}
 	config struct {
@@ -107,6 +109,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		scOpts: []gocron.SchedulerOption{
 			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
 		},
+		initQueueCh: make(chan string, 192),
 	}
 
 	worker.config.eventCbs = append(worker.config.eventCbs, worker.stateUpdateCb)
@@ -135,6 +138,8 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 	worker.sc.Start()
 
 	go worker.eventLoop()
+	go worker.runInitQueue()
+
 	return worker, nil
 }
 
@@ -189,51 +194,30 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 		return meta, ErrWorkloadExists
 	}
 
-	job, err := w.sc.NewJob(
-		gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
-		gocron.NewTask(w.stateCheck(wl.Name())),
-		gocron.WithName(fmt.Sprintf("worker state check: %s", wl.Name())),
-		gocron.WithContext(ctx),
-	)
-	if err != nil {
-		return meta, err
-	}
-
-	_, err = w.sc.NewJob(
-		gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(250*time.Millisecond))),
-		gocron.NewTask(func() {
-			if err := wl.Init(ctx); err != nil {
-				w.workloadsMu.Lock()
-				defer w.workloadsMu.Unlock()
-
-				delete(w.workloads, wl.Name())
-				w.sr.DeleteWorkload(wl.Name(), w.GetWorkerID())
-				w.EventCh <- NewWorkloadDeletedEvent(w.config.id, wl.Name())
-
-				return
-			}
-
-			w.EventCh <- NewWorkloadInitiatedEvent(w.config.id, wl.Name())
-		}),
-		gocron.WithName(fmt.Sprintf("workload initialization: %s", wl.Name())),
-		gocron.WithContext(ctx),
-	)
-	if err != nil {
-		return meta, err
-	}
-
 	w.workloads[wl.Name()] = workload{
 		object:    wl,
-		jid:       job.ID(),
 		createdAt: now,
 		updatedAt: now,
 	}
-	meta["id"] = job.ID().String()
+
+	w.enqueue(wl.Name())
 
 	w.sr.RegisterWorkload(wl.Name(), w.GetWorkerID())
 	w.EventCh <- NewWorkloadAddedEvent(w.config.id, wl.Name())
 
 	return meta, nil
+
+	/*
+		job, err := w.sc.NewJob(
+			gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
+			gocron.NewTask(w.stateCheck(wl.Name())),
+			gocron.WithName(fmt.Sprintf("worker state check: %s", wl.Name())),
+			gocron.WithContext(ctx),
+		)
+		if err != nil {
+			return meta, err
+		}
+	*/
 }
 
 // Stops and deletes a workload from the worker
@@ -382,5 +366,58 @@ func (w *Worker) stateUpdateCb(ctx context.Context, e Event) {
 		//w.sr.DeleteWorkload(e.WorkloadName, w.config.id)
 	case EventReachable:
 		//w.sr.UpdateWorkload(e.WorkloadName, w.config.id)
+	}
+}
+
+func (w *Worker) enqueue(k string) {
+	w.initQueueCh <- k
+}
+
+func (w *Worker) runInitQueue() {
+	for {
+		select {
+		case key := <-w.initQueueCh:
+			w.workloadsMu.RLock()
+			wl, ok := w.workloads[key]
+			if !ok {
+				continue
+			}
+			w.workloadsMu.RUnlock()
+
+			ctx, cancel := context.WithTimeout(w.ctx, 25*time.Second)
+
+			// do stuff here
+			if err := wl.object.Init(ctx); err != nil {
+				w.workloadsMu.Lock()
+
+				delete(w.workloads, wl.object.Name())
+				w.sr.DeleteWorkload(wl.object.Name(), w.GetWorkerID())
+				w.EventCh <- NewWorkloadDeletedEvent(w.config.id, wl.object.Name())
+
+				cancel()
+				w.workloadsMu.Unlock()
+				continue
+			}
+
+			job, err := w.sc.NewJob(
+				gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
+				gocron.NewTask(w.stateCheck(wl.object.Name())),
+				gocron.WithName(fmt.Sprintf("worker state check: %s", wl.object.Name())),
+				gocron.WithContext(ctx),
+			)
+			if err != nil {
+				// send an event on the channel?
+			}
+			wl.jid = job.ID()
+
+			w.workloadsMu.Lock()
+			w.workloads[key] = wl
+			w.workloadsMu.Unlock()
+
+			w.EventCh <- NewWorkloadInitiatedEvent(w.config.id, wl.object.Name())
+			cancel()
+		case <-w.ctx.Done():
+			return
+		}
 	}
 }

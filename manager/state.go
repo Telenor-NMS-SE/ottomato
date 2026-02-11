@@ -28,15 +28,14 @@ func NewMemoryStore() *MemoryStore {
 	}
 }
 
-func (s *MemoryStore) Lock() {
-	s.mu.Lock()
-}
+func (s *MemoryStore) Lock() {}
 
-func (s *MemoryStore) Unlock() {
-	s.mu.Unlock()
-}
+func (s *MemoryStore) Unlock() {}
 
 func (s *MemoryStore) GetAllWorkers(_ context.Context) ([]Worker, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	workers := make([]Worker, 0, len(s.workers))
 	for _, worker := range s.workers {
 		workers = append(workers, worker)
@@ -45,6 +44,9 @@ func (s *MemoryStore) GetAllWorkers(_ context.Context) ([]Worker, error) {
 }
 
 func (s *MemoryStore) GetWorker(_ context.Context, id string) (Worker, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	worker, ok := s.workers[id]
 	if !ok {
 		return nil, ErrWorkerNotFound
@@ -53,16 +55,25 @@ func (s *MemoryStore) GetWorker(_ context.Context, id string) (Worker, error) {
 }
 
 func (s *MemoryStore) AddWorker(_ context.Context, w Worker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.workers[w.GetID()] = w
 	return nil
 }
 
 func (s *MemoryStore) DeleteWorker(_ context.Context, w Worker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	delete(s.workers, w.GetID())
 	return nil
 }
 
 func (s *MemoryStore) GetAllWorkloads(_ context.Context) ([]Workload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	workloads := make([]Workload, 0, len(s.workloads))
 	for _, workload := range s.workloads {
 		workloads = append(workloads, workload)
@@ -71,6 +82,9 @@ func (s *MemoryStore) GetAllWorkloads(_ context.Context) ([]Workload, error) {
 }
 
 func (s *MemoryStore) GetWorkload(_ context.Context, id string) (Workload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	wl, ok := s.workloads[id]
 	if !ok {
 		return nil, ErrWorkloadNotFound
@@ -80,21 +94,33 @@ func (s *MemoryStore) GetWorkload(_ context.Context, id string) (Workload, error
 }
 
 func (s *MemoryStore) AddWorkload(_ context.Context, wl Workload) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.workloads[wl.GetID()] = wl
 	return nil
 }
 
 func (s *MemoryStore) UpdateWorkload(_ context.Context, wl Workload) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.workloads[wl.GetID()] = wl
 	return nil
 }
 
 func (s *MemoryStore) DeleteWorkload(_ context.Context, wl Workload) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	delete(s.workloads, wl.GetID())
 	return nil
 }
 
 func (s *MemoryStore) GetAssociations(_ context.Context, w Worker) ([]Workload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	workloads := []Workload{}
 	for workloadId, workerId := range s.associations {
 		if workerId != w.GetID() {
@@ -109,6 +135,9 @@ func (s *MemoryStore) GetAssociations(_ context.Context, w Worker) ([]Workload, 
 }
 
 func (s *MemoryStore) GetAssociation(_ context.Context, wl Workload) (Worker, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	workerId, ok := s.associations[wl.GetID()]
 	if !ok {
 		return nil, ErrMissingAssociation
@@ -123,11 +152,17 @@ func (s *MemoryStore) GetAssociation(_ context.Context, wl Workload) (Worker, er
 }
 
 func (s *MemoryStore) Associate(_ context.Context, wl Workload, w Worker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.associations[wl.GetID()] = w.GetID()
 	return nil
 }
 
 func (s *MemoryStore) Disassociate(_ context.Context, wl Workload, w Worker) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	delete(s.associations, wl.GetID())
 	return nil
 }

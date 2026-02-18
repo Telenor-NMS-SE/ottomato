@@ -139,9 +139,14 @@ func TestRunTask(t *testing.T) {
 }
 
 func TestEventCallback(t *testing.T) {
+	var mu sync.Mutex
 	var hit bool
+
 	opts := []Option{
 		WithEventCallback(func(ctx context.Context, e Event) {
+			mu.Lock()
+			defer mu.Unlock()
+
 			hit = true
 		}),
 	}
@@ -158,6 +163,9 @@ func TestEventCallback(t *testing.T) {
 
 	// wait, because events are async
 	time.Sleep(10 * time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	if exp, recv := true, hit; exp != recv {
 		t.Errorf("expected callback to be executed, but it wasn't")

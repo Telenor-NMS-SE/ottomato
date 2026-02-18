@@ -379,10 +379,10 @@ func (w *Worker) runInitQueue() {
 		case key := <-w.initQueueCh:
 			w.workloadsMu.RLock()
 			wl, ok := w.workloads[key]
+			w.workloadsMu.RUnlock()
 			if !ok {
 				continue
 			}
-			w.workloadsMu.RUnlock()
 
 			ctx, cancel := context.WithTimeout(w.ctx, 25*time.Second)
 
@@ -403,7 +403,7 @@ func (w *Worker) runInitQueue() {
 				gocron.DurationRandomJob(w.config.splayLo, w.config.splayHi),
 				gocron.NewTask(w.stateCheck(wl.object.Name())),
 				gocron.WithName(fmt.Sprintf("worker state check: %s", wl.object.Name())),
-				gocron.WithContext(ctx),
+				gocron.WithContext(w.ctx),
 			)
 			if err != nil {
 				w.EventCh <- NewWorkloadInitError(w.config.id, wl.object.Name(), "failed to schedule state check")

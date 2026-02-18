@@ -406,13 +406,14 @@ func (w *Worker) runInitQueue() {
 				gocron.WithContext(ctx),
 			)
 			if err != nil {
-				// send an event on the channel?
-			}
-			wl.jid = job.ID()
+				w.EventCh <- NewWorkloadInitError(w.config.id, wl.object.Name(), "failed to schedule state check")
+			} else {
+				wl.jid = job.ID()
 
-			w.workloadsMu.Lock()
-			w.workloads[key] = wl
-			w.workloadsMu.Unlock()
+				w.workloadsMu.Lock()
+				w.workloads[key] = wl
+				w.workloadsMu.Unlock()
+			}
 
 			w.EventCh <- NewWorkloadInitiatedEvent(w.config.id, wl.object.Name())
 			cancel()

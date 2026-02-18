@@ -22,6 +22,7 @@ const (
 	EventAdded
 	EventDeleted
 	EventInitErr
+	EventStopErr
 )
 
 func (e EventType) String() string {
@@ -40,6 +41,8 @@ func (e EventType) String() string {
 		return "workload.deleted"
 	case EventInitErr:
 		return "workload.init.error"
+	case EventStopErr:
+		return "workload.stop.error"
 	default:
 		return ""
 	}
@@ -68,6 +71,8 @@ func (e *EventType) UnmarshalJSON(data []byte) error {
 		*e = EventDead
 	case "`workload.init.error`":
 		*e = EventInitErr
+	case "`workload.stop.error`":
+		*e = EventStopErr
 	default:
 		return errors.New("invalid event type")
 	}
@@ -140,5 +145,13 @@ func NewWorkloadInitError(workerId string, workloadName string, msg string) Even
 		Worker:       workerId,
 		WorkloadName: workloadName,
 		Message:      msg,
+	}
+}
+
+func NewWorkloadStopError(workerId, workloadName string) Event {
+	return Event{
+		EventType:    EventStopErr,
+		Worker:       workerId,
+		WorkloadName: workloadName,
 	}
 }

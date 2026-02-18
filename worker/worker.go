@@ -390,6 +390,10 @@ func (w *Worker) runInitQueue() {
 			if err := wl.object.Init(ctx); err != nil {
 				w.workloadsMu.Lock()
 
+				if err := wl.object.Stop(); err != nil {
+					w.EventCh <- NewWorkloadStopError(w.config.id, wl.object.Name())
+				}
+
 				delete(w.workloads, wl.object.Name())
 				w.sr.DeleteWorkload(wl.object.Name(), w.GetWorkerID())
 				w.EventCh <- NewWorkloadDeletedEvent(w.config.id, wl.object.Name())

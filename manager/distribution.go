@@ -91,6 +91,11 @@ func (m *Manager) distributor() {
 		return
 	}
 
+	if len(workers) == 0 {
+		m.signal.Error(fmt.Errorf("no workers available for distribution"))
+		return
+	}
+
 	var wm = make(map[string]Worker, len(workers))
 	var current = make(map[string][]string, len(workers))
 	for _, w := range workers {
@@ -111,6 +116,11 @@ func (m *Manager) distributor() {
 	workloads, err := m.state.GetAllWorkloads(ctx)
 	if err != nil {
 		m.signal.Error(fmt.Errorf("failed to distribute: failed to get workloads: %w", err))
+		return
+	}
+
+	if len(workloads) == 0 {
+		m.signal.Error(fmt.Errorf("no workloads to distribute"))
 		return
 	}
 

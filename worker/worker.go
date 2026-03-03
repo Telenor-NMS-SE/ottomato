@@ -164,6 +164,7 @@ func (w *Worker) RunTask(ctx context.Context, target string, task *Task) (Result
 	w.workloadsMu.RLock()
 	wl, exists := w.workloads[target]
 	if !exists {
+		w.workloadsMu.RUnlock()
 		return Result{}, ErrWorkloadNotFound
 	}
 	w.workloadsMu.RUnlock()
@@ -305,6 +306,7 @@ func (w *Worker) stateCheck(host string) func(context.Context) {
 		w.workloadsMu.RLock()
 		wl, exists := w.workloads[host]
 		if !exists {
+			w.workloadsMu.RUnlock()
 			return
 		}
 		w.workloadsMu.RUnlock()

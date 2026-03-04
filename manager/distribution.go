@@ -85,11 +85,25 @@ func (m *Manager) distributor() {
 	ctx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 
+	stats := map[string]any{
+		"workers":   0,
+		"workloads": 0,
+
+		"wanted":      []string{},
+		"deletes":     map[string][]string{},
+		"distributes": map[string]string{},
+
+		"loadBefore": map[string]int{},
+		"loadAfter":  map[string]int{},
+	}
+
 	workers, err := m.state.GetAllWorkers(ctx)
 	if err != nil {
 		m.signal.Error(fmt.Errorf("failed to distribute: failed to get workers: %w", err))
 		return
 	}
+
+	stats["workers"] = len(workers)
 
 	if len(workers) == 0 {
 		m.signal.Error(fmt.Errorf("no workers available for distribution"))
@@ -119,6 +133,8 @@ func (m *Manager) distributor() {
 		return
 	}
 
+	stats["workloads"] = len(workloads)
+
 	if len(workloads) == 0 {
 		m.signal.Error(fmt.Errorf("no workloads to distribute"))
 		return
@@ -130,6 +146,8 @@ func (m *Manager) distributor() {
 		wlm[wl.GetID()] = wl
 		wanted = append(wanted, wl.GetID())
 	}
+
+	stats["wanted"] = wanted
 
 	deletes := map[string][]string{}
 	for w, wls := range current {
@@ -147,6 +165,14 @@ func (m *Manager) distributor() {
 
 		current[w] = c
 	}
+
+	stats["deletes"] = deletes
+
+	m.signal.Event(Event{
+		Type:      EventDistributionStats,
+		ManagerID: m.id,
+		Extra:     stats,
+	})
 
 	var wg sync.WaitGroup
 	for w, dels := range deletes {
@@ -182,6 +208,8 @@ outer:
 		load[w] = len(wls)
 	}
 
+	stats["loadBefore"] = load
+
 	distribution := map[string]string{}
 	for _, wl := range distribute {
 		var wid = ""
@@ -197,6 +225,9 @@ outer:
 		distribution[wl] = wid
 		load[wid] += 1
 	}
+
+	stats["distributes"] = distribution
+	stats["loadAfter"] = load
 
 	for wl, w := range distribution {
 		wg.Go(func() {

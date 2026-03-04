@@ -21,7 +21,14 @@ func NewSlogSignaller(instance Slog) *SlogSignaller {
 }
 
 func (s *SlogSignaller) Event(e Event) {
-	s.instance.Info("received event", "type", e.Type.String(), "managerId", e.ManagerID, "workerId", e.WorkerID, "resourceId", e.ResourceID)
+	s.instance.Info(
+		"received event",
+		"type", e.Type.String(),
+		"managerId", e.ManagerID,
+		"workerId", e.WorkerID,
+		"resourceId", e.ResourceID,
+		"extra", e.Extra,
+	)
 }
 
 func (s *SlogSignaller) Error(err error) {

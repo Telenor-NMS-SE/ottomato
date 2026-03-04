@@ -6,10 +6,11 @@ import (
 )
 
 type Event struct {
-	Type       EventType `json:"type"`
-	ManagerID  string    `json:"managerId"`
-	ResourceID string    `json:"resourceId"`
-	WorkerID   string    `json:"workerId,omitempty"`
+	Type       EventType      `json:"type"`
+	ManagerID  string         `json:"managerId"`
+	ResourceID string         `json:"resourceId"`
+	WorkerID   string         `json:"workerId,omitempty"`
+	Extra      map[string]any `json:"extra,omitempty"`
 }
 
 var (
@@ -25,6 +26,8 @@ const (
 	EventWorkloadAdded
 	EventWorkloadDeleted
 
+	EventDistributionStats
+
 	EventWorkloadDistributed
 	EventWorkloadDistributedError
 )
@@ -39,6 +42,8 @@ func (e EventType) String() string {
 		return "workload.added"
 	case EventWorkloadDeleted:
 		return "workload.deleted"
+	case EventDistributionStats:
+		return "worker.distribution.stats"
 	case EventWorkloadDistributed:
 		return "workload.distributed"
 	case EventWorkloadDistributedError:
@@ -69,6 +74,8 @@ func (e *EventType) UnmarshalJSON(val []byte) error {
 		*e = EventWorkloadDeleted
 	case `"workload.distributed"`:
 		*e = EventWorkloadDistributed
+	case "`worker.distribution.stats`":
+		*e = EventDistributionStats
 	case `"workload.distributed.error"`:
 		*e = EventWorkloadDistributedError
 	default:

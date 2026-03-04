@@ -30,6 +30,7 @@ type (
 		failCounter map[string]int
 
 		initQueueCh chan string
+		stopQueueCh chan Workload
 
 		config config
 	}
@@ -110,6 +111,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
 		},
 		initQueueCh: make(chan string, 192),
+		stopQueueCh: make(chan Workload, 192),
 	}
 
 	worker.config.eventCbs = append(worker.config.eventCbs, worker.stateUpdateCb)
@@ -139,6 +141,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 
 	go worker.eventLoop()
 	go worker.runInitQueue()
+	go worker.runStopQueue()
 
 	return worker, nil
 }
@@ -201,7 +204,7 @@ func (w *Worker) AddWorkload(ctx context.Context, wl Workload) (map[string]any, 
 		updatedAt: now,
 	}
 
-	w.enqueue(wl.Name())
+	w.enqueueInit(wl.Name())
 
 	w.sr.RegisterWorkload(wl.Name(), w.GetWorkerID())
 	w.EventCh <- NewWorkloadAddedEvent(w.config.id, wl.Name())
@@ -231,9 +234,9 @@ func (w *Worker) DeleteWorkload(name string) (err error) {
 		return ErrWorkloadNotFound
 	}
 
-	if err := wl.object.Stop(); err != nil {
-		return err
-	}
+	// avoid stopping workloads directly in this flow,
+	// as some workloads can take _a long_ time to stop.
+	w.enqueueStop(wl.object)
 
 	// clean up schedule, but do not return on error
 	if err := w.sc.RemoveJob(wl.jid); err != nil {
@@ -371,7 +374,7 @@ func (w *Worker) stateUpdateCb(ctx context.Context, e Event) {
 	}
 }
 
-func (w *Worker) enqueue(k string) {
+func (w *Worker) enqueueInit(k string) {
 	w.initQueueCh <- k
 }
 
@@ -423,6 +426,23 @@ func (w *Worker) runInitQueue() {
 
 			w.EventCh <- NewWorkloadInitiatedEvent(w.config.id, wl.object.Name())
 			cancel()
+		case <-w.ctx.Done():
+			return
+		}
+	}
+}
+
+func (w *Worker) enqueueStop(wl Workload) {
+	w.stopQueueCh <- wl
+}
+
+func (w *Worker) runStopQueue() {
+	for {
+		select {
+		case wl := <-w.stopQueueCh:
+			if err := wl.Stop(); err != nil {
+				w.EventCh <- NewWorkloadStopError(w.config.id, wl.Name())
+			}
 		case <-w.ctx.Done():
 			return
 		}

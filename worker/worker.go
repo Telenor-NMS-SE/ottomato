@@ -29,6 +29,7 @@ type (
 		failMu      sync.Mutex
 		failCounter map[string]int
 
+		initTimeout time.Duration
 		initQueueCh chan string
 		stopQueueCh chan Workload
 
@@ -110,6 +111,7 @@ func New(ctx context.Context, opts ...Option) (*Worker, error) {
 		scOpts: []gocron.SchedulerOption{
 			gocron.WithLimitConcurrentJobs(10, gocron.LimitModeReschedule),
 		},
+		initTimeout: 25 * time.Second,
 		initQueueCh: make(chan string, 192),
 		stopQueueCh: make(chan Workload, 192),
 	}
@@ -389,9 +391,8 @@ func (w *Worker) runInitQueue() {
 				continue
 			}
 
-			ctx, cancel := context.WithTimeout(w.ctx, 25*time.Second)
+			ctx, cancel := context.WithTimeout(w.ctx, w.initTimeout)
 
-			// do stuff here
 			if err := wl.object.Init(ctx); err != nil {
 				w.workloadsMu.Lock()
 

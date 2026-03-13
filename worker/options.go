@@ -65,3 +65,9 @@ func WithSchedulerOption(opt gocron.SchedulerOption) Option {
 		w.scOpts = append(w.scOpts, opt)
 	}
 }
+
+func WithInitTimeout(t time.Duration) Option {
+	return func(w *Worker) {
+		w.initTimeout = t
+	}
+}

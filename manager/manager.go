@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -62,6 +63,10 @@ type StateStorage interface {
 	Associate(context.Context, Workload, Worker) error
 	Disassociate(context.Context, Workload, Worker) error
 }
+
+// impl should return this custom error to prevent issues
+// when removing workloads with no association.
+var ErrNoAssociation = errors.New("workload has no association")
 
 type ctxScope string
 

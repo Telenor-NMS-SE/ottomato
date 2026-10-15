@@ -168,12 +168,6 @@ func (m *Manager) distributor() {
 
 	stats["deletes"] = deletes
 
-	m.signal.Event(Event{
-		Type:      EventDistributionStats,
-		ManagerID: m.id,
-		Extra:     stats,
-	})
-
 	var wg sync.WaitGroup
 	for w, dels := range deletes {
 		for _, del := range dels {
@@ -228,6 +222,12 @@ outer:
 
 	stats["distributes"] = distribution
 	stats["loadAfter"] = load
+
+	m.signal.Event(Event{
+		Type:      EventDistributionStats,
+		ManagerID: m.id,
+		Extra:     stats,
+	})
 
 	for wl, w := range distribution {
 		wg.Go(func() {

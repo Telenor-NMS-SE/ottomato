@@ -117,6 +117,37 @@ func TestDeleteWorkload(t *testing.T) {
 	}
 }
 
+type noAssociationStore struct {
+	*MemoryStore
+}
+
+func (s *noAssociationStore) GetAssociation(context.Context, Workload) (Worker, error) {
+	return nil, ErrNoAssociation
+}
+
+func (s *noAssociationStore) Disassociate(ctx context.Context, wl Workload, w Worker) error {
+	_ = w.GetID()
+	return s.MemoryStore.Disassociate(ctx, wl, w)
+}
+
+func TestDeleteWorkloadWithoutAssociation(t *testing.T) {
+	state := &noAssociationStore{MemoryStore: NewMemoryStore()}
+	state.workloads["test"] = &mockWorkload{id: "test"}
+	manager := Manager{
+		state:  state,
+		ctx:    context.TODO(),
+		signal: &mockSignaller{},
+	}
+
+	if err := manager.DeleteWorkload(context.TODO(), &mockWorkload{id: "test"}); err != nil {
+		t.Fatalf("unexpected error when deleting unassociated workload: %v", err)
+	}
+
+	if len(state.workloads) != 0 {
+		t.Fatalf("expected workload count to be exactly 0, but got: %d", len(state.workloads))
+	}
+}
+
 func TestGetWorkloads(t *testing.T) {
 	state := &MemoryStore{
 		workloads: map[string]Workload{

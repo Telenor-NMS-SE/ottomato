@@ -71,7 +71,7 @@ func (m *Manager) DeleteWorkload(ctx context.Context, wl Workload) error {
 	w, err := m.state.GetAssociation(ctx, wl)
 	if err != nil && !errors.Is(err, ErrNoAssociation) {
 		return err
-	} else {
+	} else if err == nil {
 		if err := m.state.Disassociate(ctx, wl, w); err != nil {
 			return err
 		}
